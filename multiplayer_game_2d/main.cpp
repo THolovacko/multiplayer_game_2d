@@ -40,7 +40,7 @@ int main()
       if (window_event.type == sf::Event::Closed) window.close();
     }
 
-    if (elapsed_frame_time_seconds <= 0.0f) Sleep(1);
+    if (elapsed_frame_time_seconds == 0.0f) Sleep(1); // handle underflow
   } // end of game loop
 
   return 0;
