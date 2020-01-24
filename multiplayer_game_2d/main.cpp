@@ -16,21 +16,21 @@ int main()
   sf::Texture background_texture;
   sf::Sprite  background;
   background_texture.loadFromFile("Assets/Images/bomberman_map.png");
-	sf::Vector2u background_texture_size = background_texture.getSize();
+  sf::Vector2u background_texture_size = background_texture.getSize();
   float background_scale_x = (float) window_size.x / background_texture_size.x;
   float background_scale_y = (float) window_size.y / background_texture_size.y;
   background.setTexture(background_texture);
-	background.setScale(background_scale_x, background_scale_y);
+  background.setScale(background_scale_x, background_scale_y);
 
   sf::Texture local_player_texture;
   sf::Sprite  local_player;
   local_player_texture.loadFromFile("Assets/Images/mario.png");
   local_player_texture.setSmooth(true);
-	sf::Vector2u local_player_texture_size = local_player_texture.getSize();
+  sf::Vector2u local_player_texture_size = local_player_texture.getSize();
   float local_player_scale_x = (float) (window_size.x / 16.0f) / local_player_texture_size.x;
   float local_player_scale_y = (float) (window_size.y / 16.0f) / local_player_texture_size.y;
   local_player.setTexture(local_player_texture);
-	local_player.setScale(local_player_scale_x, local_player_scale_y);
+  local_player.setScale(local_player_scale_x, local_player_scale_y);
 
 
 
