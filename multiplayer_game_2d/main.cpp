@@ -64,7 +64,25 @@ int main()
     // get input and events
     while (window.pollEvent(window_event))
     {
-      if (window_event.type == sf::Event::Closed) window.close();
+      switch (window_event.type)
+      {
+        case sf::Event::Closed:
+              window.close();
+              break;
+
+        case sf::Event::KeyPressed:
+              if (window_event.key.code == sf::Keyboard::Left)   local_player.move(-200.0f,  0.0f  );
+              if (window_event.key.code == sf::Keyboard::Right)  local_player.move( 200.0f,  0.0f  );
+              if (window_event.key.code == sf::Keyboard::Up)     local_player.move( 0.0f,   -200.0f);
+              if (window_event.key.code == sf::Keyboard::Down)   local_player.move( 0.0f,    200.0f);
+              break;
+
+        case sf::Event::KeyReleased:
+              break;
+
+        default:
+              break;
+      }
     }
 
 
