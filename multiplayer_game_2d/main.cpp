@@ -1,4 +1,5 @@
 #include <SFML/Graphics.hpp>
+#include <SFML/Audio.hpp>
 #include <iostream>
 #include <windows.h>
 
@@ -40,6 +41,11 @@ int main()
   bomb.setTexture(bomb_texture);
   bomb.setScale(bomb_scale_x, bomb_scale_y);
 
+  sf::SoundBuffer tingling_sound_buffer;
+  tingling_sound_buffer.loadFromFile("Assets/Sounds/tingling.wav");
+  sf::Sound tingling;
+  tingling.setBuffer(tingling_sound_buffer);
+
 
 
   // setup and run game loop
@@ -75,6 +81,7 @@ int main()
               if (window_event.key.code == sf::Keyboard::Right)  local_player.move( 200.0f,  0.0f  );
               if (window_event.key.code == sf::Keyboard::Up)     local_player.move( 0.0f,   -200.0f);
               if (window_event.key.code == sf::Keyboard::Down)   local_player.move( 0.0f,    200.0f);
+              if (window_event.key.code == sf::Keyboard::T)      tingling.play();
               break;
 
         case sf::Event::KeyReleased:
