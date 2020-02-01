@@ -5,23 +5,24 @@
 
 int main()
 {
-  // create window
+  /* create window */
   sf::VideoMode desktop_video_mode = sf::VideoMode::getDesktopMode();
   sf::RenderWindow window(desktop_video_mode, "2D Multiplayer Game", sf::Style::Fullscreen);
   window.setVerticalSyncEnabled(true);
   window.setActive(true);
   sf::Vector2u window_size = window.getSize();
+  sf::Vector2f tile_size((float) window_size.x / 16.0f,(float) window_size.y / 9.0f); 
 
 
 
-  sf::Texture background_texture;
-  sf::Sprite  background;
-  background_texture.loadFromFile("Assets/Images/bomberman_map.png");
-  sf::Vector2u background_texture_size = background_texture.getSize();
-  float background_scale_x = (float) window_size.x / background_texture_size.x;
-  float background_scale_y = (float) window_size.y / background_texture_size.y;
-  background.setTexture(background_texture);
-  background.setScale(background_scale_x, background_scale_y);
+  sf::Texture floor_texture;
+  sf::Sprite  floor;
+  floor_texture.loadFromFile("Assets/Images/floor.png");
+  sf::Vector2u floor_texture_size = floor_texture.getSize();
+  float floor_scale_x = (float) window_size.x / floor_texture_size.x;
+  float floor_scale_y = (float) window_size.y / floor_texture_size.y;
+  floor.setTexture(floor_texture);
+  floor.setScale(floor_scale_x, floor_scale_y);
 
   sf::Texture local_player_texture;
   sf::Sprite  local_player;
@@ -46,9 +47,35 @@ int main()
   sf::Sound tingling;
   tingling.setBuffer(tingling_sound_buffer);
 
+  sf::Texture floor_aesthetic_texture;
+  floor_aesthetic_texture.loadFromFile("Assets/Images/floor_aesthetic.png");
+  sf::VertexArray floor_aesthetic_layer(sf::Quads, 576); // 144 *4 = 576
+
+  int floor_aesthetic_bitmap[144] = {0};
+  floor_aesthetic_bitmap[0] = 0;
+  floor_aesthetic_bitmap[1] = 1;
+  floor_aesthetic_bitmap[2] = 2;
+  floor_aesthetic_bitmap[3] = 3;
+  floor_aesthetic_bitmap[4] = 3;
+  floor_aesthetic_bitmap[5] = 2;
+  floor_aesthetic_bitmap[6] = 1;
+  floor_aesthetic_bitmap[7] = 0;
+  floor_aesthetic_bitmap[15] = 2;
+  floor_aesthetic_bitmap[143] = 2;
+
+  // for each vertex in vertex array, assign screen coordinates
+  for(int y=0,vertex=0; y < 9 ; ++y)
+  for(int x=0         ; x < 16; ++x, vertex+=4)
+  {
+    floor_aesthetic_layer[vertex].position   = sf::Vector2f(x * tile_size.x, y * tile_size.y);
+    floor_aesthetic_layer[vertex+1].position = sf::Vector2f((x+1) * tile_size.x, y * tile_size.y);
+    floor_aesthetic_layer[vertex+2].position = sf::Vector2f((x+1) * tile_size.x, (y+1) * tile_size.y);
+    floor_aesthetic_layer[vertex+3].position = sf::Vector2f(x * tile_size.x, (y+1) * tile_size.y);
+  }
 
 
-  // setup and run game loop
+
+  /* setup and run game loop */
   sf::Event window_event;
   sf::Clock clock;
   sf::Time  elapsed_frame_time;
@@ -67,7 +94,7 @@ int main()
 
 
 
-    // get input and events
+    /* get input and events */
     while (window.pollEvent(window_event))
     {
       switch (window_event.type)
@@ -77,10 +104,10 @@ int main()
               break;
 
         case sf::Event::KeyPressed:
-              if (window_event.key.code == sf::Keyboard::Left)   local_player.move(-200.0f,  0.0f  );
-              if (window_event.key.code == sf::Keyboard::Right)  local_player.move( 200.0f,  0.0f  );
-              if (window_event.key.code == sf::Keyboard::Up)     local_player.move( 0.0f,   -200.0f);
-              if (window_event.key.code == sf::Keyboard::Down)   local_player.move( 0.0f,    200.0f);
+              if (window_event.key.code == sf::Keyboard::Left)   local_player.move((float) -1 * tile_size.x, 0.0f  );
+              if (window_event.key.code == sf::Keyboard::Right)  local_player.move((float) tile_size.x, 0.0f  );
+              if (window_event.key.code == sf::Keyboard::Up)     local_player.move(0.0f, (float) -1 * tile_size.x);
+              if (window_event.key.code == sf::Keyboard::Down)   local_player.move(0.0f, (float) tile_size.x);
               if (window_event.key.code == sf::Keyboard::T)      tingling.play();
               break;
 
@@ -94,14 +121,31 @@ int main()
 
 
 
-    // calculate gameplay stuff
-    bomb.move(0.0f,100.0f * elapsed_frame_time_seconds);
+    /* calculate gameplay stuff */
+
+    // build floor aesthetic layer
+    // for each value in bitmap: assign texture coordinates (texture coordinates depend on bitmap) (probably only texture coordinates ever change in future games)
+    for(int tile=0, vertex=0,texture_offset=0; tile < 144; ++tile, vertex+=4)
+    {
+      texture_offset = floor_aesthetic_bitmap[tile] * 64;
+
+      floor_aesthetic_layer[vertex].texCoords   = sf::Vector2f((float) texture_offset        , 0.0f);
+      floor_aesthetic_layer[vertex+1].texCoords = sf::Vector2f((float) texture_offset + 64.0f, 0.0f);
+      floor_aesthetic_layer[vertex+2].texCoords = sf::Vector2f((float) texture_offset + 64.0f, 64.0f);
+      floor_aesthetic_layer[vertex+3].texCoords = sf::Vector2f((float) texture_offset        , 64.0f);
+    }
+
+    bomb.move(0.0f, 100.0f * elapsed_frame_time_seconds);
 
 
 
-    // draw
+    /* draw */
     window.clear(sf::Color::Black);
-    window.draw(background);
+
+    // tilemap
+    window.draw(floor);
+    window.draw(floor_aesthetic_layer, &floor_aesthetic_texture);
+
     window.draw(local_player);
     window.draw(bomb);
     window.display();
