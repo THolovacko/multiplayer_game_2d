@@ -142,12 +142,16 @@ int main()
     /* draw */
     window.clear(sf::Color::Black);
 
-    // tilemap
+    // draw map
     window.draw(floor);
     window.draw(floor_aesthetic_layer, &floor_aesthetic_texture);
+    // draw entities
+    // draw HUD (if decided to have static HUD)
+    // draw options if requested
 
     window.draw(local_player);
     window.draw(bomb);
+
     window.display();
 
 
