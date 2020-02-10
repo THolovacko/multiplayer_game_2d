@@ -2,8 +2,7 @@
 #include <SFML/Audio.hpp>
 #include <iostream>
 #include <windows.h>
-
-#include "map.h"
+#include "tile_map.h"
 
 int main()
 {
@@ -53,7 +52,7 @@ int main()
   floor_aesthetic_texture.loadFromFile("Assets/Images/floor_aesthetic.png");
   sf::VertexArray floor_aesthetic_layer(sf::Quads, 576); // 144 *4 = 576
 
-  map<9,16> test(floor_texture, floor_aesthetic_texture);
+  tile_map<9,16> test("Assets/Images/floor.png", "Assets/Images/floor_aesthetic.png", (float) window_size.x, (float) window_size.y);
 
   int floor_aesthetic_bitmap[144] = {0};
   floor_aesthetic_bitmap[0] = 0;
