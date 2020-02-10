@@ -13,7 +13,7 @@ struct tile_map
   sf::Texture background_texture;
   sf::Texture tiles_texture;
   sf::Vertex vertex_buffer[(p_rows * p_columns * 4) + 4]; // (4 vertices per tile) + 4 vertices for background
-  int bitmap[p_rows * p_columns];
+  int bitmap[p_rows * p_columns] = {0};
 
   tile_map(const char* background_texture_file_path, const char* tiles_texture_file_path, float window_size_x, float window_size_y) : tile_size_x(window_size_x / rows),tile_size_y(window_size_y / columns)
   {
@@ -26,7 +26,7 @@ struct tile_map
     vertex_buffer[2].position = sf::Vector2f(tile_size_x * rows, tile_size_y * columns);
     vertex_buffer[3].position = sf::Vector2f(0.0f, tile_size_y * columns);
 
-    // assign screen coordinates for tiles
+    // assign screen coordinates for each vertex in tiles
     for(int y=0,vertex=1; y < columns ; ++y)
     for(int x=0         ; x < rows    ; ++x, vertex+=4)
     {
@@ -35,6 +35,6 @@ struct tile_map
       vertex_buffer[vertex+2].position = sf::Vector2f((x+1) * tile_size_x, (y+1) * tile_size_y);
       vertex_buffer[vertex+3].position = sf::Vector2f(x * tile_size_x, (y+1) * tile_size_y);
     }
-
   }
+
 };
