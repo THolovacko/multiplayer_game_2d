@@ -36,7 +36,7 @@ int main()
   sf::Sound tingling;
   tingling.setBuffer(tingling_sound_buffer);
   
-  tile_map<16,9> test("Assets/Images/floor.png", "Assets/Images/floor_aesthetic.png", (float) window_size.x, (float) window_size.y, 64);
+  tile_map<16,9> test("Assets/Images/floor_aesthetic.png", (float) window_size.x, (float) window_size.y, 64);
 
   /* setup and run game loop */
   sf::Event window_event;
@@ -107,8 +107,6 @@ int main()
     window.clear(sf::Color::Black);
 
     // draw map
-
-    window.draw(test.vertex_buffer, 4, sf::Quads, &test.background_texture);
     window.draw(test.vertex_buffer, test.vertice_count, sf::Quads, &test.tiles_texture);
     // draw entities
     // draw HUD (if decided to have static HUD)

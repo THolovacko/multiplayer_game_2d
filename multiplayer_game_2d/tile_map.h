@@ -11,15 +11,13 @@ struct tile_map
   const float tile_size_x;
   const float tile_size_y;
   const int vertice_count = (p_rows * p_columns * 4) + 4; // (4 vertices per tile) + 4 vertices for background
-  sf::Texture background_texture;
   sf::Texture tiles_texture;
   sf::Vertex vertex_buffer[(p_rows * p_columns * 4) + 4]; // (4 vertices per tile) + 4 vertices for background
   int bitmap[p_rows * p_columns] = {0};
   const int tiles_texture_offset;                         // pixel width and height for a tile in tile sheet
 
-  tile_map(const char* background_texture_file_path, const char* tiles_texture_file_path, const float window_size_x, const float window_size_y, const int p_tiles_texture_offset) : tile_size_x(window_size_x / rows),tile_size_y(window_size_y / columns), tiles_texture_offset(p_tiles_texture_offset)
+  tile_map(const char* tiles_texture_file_path, const float window_size_x, const float window_size_y, const int p_tiles_texture_offset) : tile_size_x(window_size_x / rows),tile_size_y(window_size_y / columns), tiles_texture_offset(p_tiles_texture_offset)
   {
-    background_texture.loadFromFile(background_texture_file_path);
     tiles_texture.loadFromFile(tiles_texture_file_path);
 
     // assign screen coordinates for background
@@ -41,7 +39,7 @@ struct tile_map
 
   void update_tex_coords_from_bitmap()
   {
-    for(int tile=0, vertex=4,texture_offset; tile < tile_count; ++tile, vertex+=4)
+    for(int tile=0, vertex=0,texture_offset; tile < tile_count; ++tile, vertex+=4)
     {
       texture_offset = bitmap[tile] * tiles_texture_offset;
 
