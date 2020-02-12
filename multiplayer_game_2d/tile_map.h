@@ -22,13 +22,13 @@ struct tile_map
     tiles_texture.loadFromFile(tiles_texture_file_path);
 
     // assign screen coordinates and texture coordinates for background
-    vertex_buffer[0].position = sf::Vector2f(0.0f, 0.0f);
+    vertex_buffer[0].position  = sf::Vector2f(0.0f, 0.0f);
     vertex_buffer[0].texCoords = sf::Vector2f(0.0f , 0.0f);
-    vertex_buffer[1].position = sf::Vector2f(tile_size_x * rows, 0);
+    vertex_buffer[1].position  = sf::Vector2f(tile_size_x * rows, 0);
     vertex_buffer[1].texCoords = sf::Vector2f((float) tile_side_length, 0.0f);
-    vertex_buffer[2].position = sf::Vector2f(tile_size_x * rows, tile_size_y * columns);
+    vertex_buffer[2].position  = sf::Vector2f(tile_size_x * rows, tile_size_y * columns);
     vertex_buffer[2].texCoords = sf::Vector2f((float) tile_side_length, (float) tile_side_length);
-    vertex_buffer[3].position = sf::Vector2f(0.0f, tile_size_y * columns);
+    vertex_buffer[3].position  = sf::Vector2f(0.0f, tile_size_y * columns);
     vertex_buffer[3].texCoords = sf::Vector2f(0.0f, (float) tile_side_length);
 
     // assign screen coordinates for each vertex in tiles
