@@ -36,7 +36,9 @@ int main()
   sf::Sound tingling;
   tingling.setBuffer(tingling_sound_buffer);
   
-  tile_map<16,9> test("Assets/Images/floor_aesthetic.png", (float) window_size.x, (float) window_size.y, 64);
+  tile_map<16,9> test_map_background("Assets/Images/test_map_background.png", (float) window_size.x, (float) window_size.y, 64);
+
+
 
   /* setup and run game loop */
   sf::Event window_event;
@@ -67,10 +69,10 @@ int main()
               break;
 
         case sf::Event::KeyPressed:
-              if (window_event.key.code == sf::Keyboard::Left)   local_player.move((float) -1 * test.tile_size_x, 0.0f  );
-              if (window_event.key.code == sf::Keyboard::Right)  local_player.move((float) test.tile_size_x, 0.0f  );
-              if (window_event.key.code == sf::Keyboard::Up)     local_player.move(0.0f, (float) -1 * test.tile_size_y);
-              if (window_event.key.code == sf::Keyboard::Down)   local_player.move(0.0f, (float) test.tile_size_y);
+              if (window_event.key.code == sf::Keyboard::Left)   local_player.move((float) -1 * test_map_background.tile_size_x, 0.0f  );
+              if (window_event.key.code == sf::Keyboard::Right)  local_player.move((float) test_map_background.tile_size_x, 0.0f  );
+              if (window_event.key.code == sf::Keyboard::Up)     local_player.move(0.0f, (float) -1 * test_map_background.tile_size_y);
+              if (window_event.key.code == sf::Keyboard::Down)   local_player.move(0.0f, (float) test_map_background.tile_size_y);
               if (window_event.key.code == sf::Keyboard::T)      tingling.play();
               break;
 
@@ -85,37 +87,35 @@ int main()
 
 
     /* calculate gameplay stuff */
-
-    test.bitmap[0] = 0;
-    test.bitmap[1] = 1;
-    test.bitmap[2] = 2;
-    test.bitmap[3] = 3;
-    test.bitmap[4] = 3;
-    test.bitmap[5] = 2;
-    test.bitmap[6] = 1;
-    test.bitmap[7] = 0;
-    test.bitmap[15] = 2;
-    test.bitmap[143] = 2;
-
-
-    test.update_tex_coords_from_bitmap();
+    test_map_background.bitmap[0] = 0;
+    test_map_background.bitmap[1] = 1;
+    test_map_background.bitmap[2] = 2;
+    test_map_background.bitmap[3] = 3;
+    test_map_background.bitmap[4] = 3;
+    test_map_background.bitmap[5] = 2;
+    test_map_background.bitmap[6] = 1;
+    test_map_background.bitmap[7] = 0;
+    test_map_background.bitmap[15] = 2;
+    test_map_background.bitmap[143] = 2;
+    test_map_background.update_tex_coords_from_bitmap();
 
     bomb.move(0.0f, 100.0f * elapsed_frame_time_seconds);
+
 
 
     /* draw */
     window.clear(sf::Color::Black);
 
     // draw map
-    window.draw(test.vertex_buffer, test.vertice_count, sf::Quads, &test.tiles_texture);
+    window.draw(test_map_background.vertex_buffer, test_map_background.vertice_count, sf::Quads, &test_map_background.tiles_texture);
     // draw entities
+    window.draw(local_player);
+    window.draw(bomb);
     // draw HUD (if decided to have static HUD)
     // draw options if requested
 
-    window.draw(local_player);
-    window.draw(bomb);
-
     window.display();
+
 
 
     // handle underflow
