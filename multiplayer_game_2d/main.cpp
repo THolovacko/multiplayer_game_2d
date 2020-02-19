@@ -3,6 +3,8 @@
 #include <iostream>
 #include <windows.h>
 #include "tile_map.h"
+#include "gameplay_entities.h"
+
 
 int main()
 {
@@ -38,7 +40,6 @@ int main()
   
   // only used for aesthetics and sizes etc...
   tile_map<16,9> test_map_background("Assets/Images/test_map_background.png", (float) window_size.x, (float) window_size.y, 64);
-
 
 
   /* setup and run game loop */
@@ -101,7 +102,6 @@ int main()
     test_map_background.update_tex_coords_from_bitmap();
 
     bomb.move(0.0f, 100.0f * elapsed_frame_time_seconds);
-
 
 
     /* draw */
