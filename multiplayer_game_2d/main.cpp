@@ -40,6 +40,7 @@ int main()
   
   // only used for aesthetics and sizes etc...
   tile_map<16,9> test_map_background("Assets/Images/test_map_background.png", (float) window_size.x, (float) window_size.y, 64);
+  gameplay_entities<5> test_entities("Assets/Images/test_entities.png", 192); // (192 = 64 * 3) 64 should be single tile size in tile map
 
 
   /* setup and run game loop */
