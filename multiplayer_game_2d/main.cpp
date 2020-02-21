@@ -58,7 +58,8 @@ int main()
     elapsed_frame_time_milliseconds = elapsed_frame_time.asMilliseconds();
     elapsed_frame_time_microseconds = elapsed_frame_time.asMicroseconds();
     elapsed_frame_time_seconds      = elapsed_frame_time.asSeconds();
-    std::cout << "elapsed_frame_time_milliseconds: " << elapsed_frame_time_milliseconds << std::endl;
+    //std::cout << "elapsed_frame_time_milliseconds: " << elapsed_frame_time_milliseconds << std::endl;
+    std::cout << sizeof(sf::Vector2f) << std::endl;
 
 
 
