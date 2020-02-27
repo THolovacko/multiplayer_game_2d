@@ -38,10 +38,23 @@ int main()
   sf::Sound tingling;
   tingling.setBuffer(tingling_sound_buffer);
   
-  // only used for aesthetics and sizes etc...
   tile_map<16,9> test_map_background("Assets/Images/test_map_background.png", (float) window_size.x, (float) window_size.y, 64);
-  gameplay_entities<5> test_entities("Assets/Images/test_entities.png", 192); // (192 = 64 * 3) 64 should be single tile size in tile map
 
+  gameplay_entities<5> entities("Assets/Images/gameplay_entities.png", 192); // (192 = 64 * 3) 64 should be single tile size in tile map
+  entities.is_garbage_flags[0] = false;
+  entities.is_garbage_flags[1] = false;
+  entities.is_garbage_flags[2] = false;
+  entities.is_garbage_flags[3] = false;
+  entities.is_garbage_flags[4] = false;
+  entities.types[0] = gameplay_entities_type_and_sprite_sheet_row_index::MARIO;
+  entities.types[1] = gameplay_entities_type_and_sprite_sheet_row_index::BOMB;
+  entities.types[2] = gameplay_entities_type_and_sprite_sheet_row_index::BOMB;
+  entities.types[3] = gameplay_entities_type_and_sprite_sheet_row_index::BOMB;
+  entities.types[4] = gameplay_entities_type_and_sprite_sheet_row_index::BOMB;
+  entities.velocities[1] = sf::Vector2f(0.0f,-64.0f);
+  entities.velocities[2] = sf::Vector2f(16.0f,32.0f);
+  entities.velocities[3] = sf::Vector2f(32.0f,192.0f);
+  entities.velocities[4] = sf::Vector2f(0.0f,16.0f);
 
   /* setup and run game loop */
   sf::Event window_event;
@@ -58,8 +71,7 @@ int main()
     elapsed_frame_time_milliseconds = elapsed_frame_time.asMilliseconds();
     elapsed_frame_time_microseconds = elapsed_frame_time.asMicroseconds();
     elapsed_frame_time_seconds      = elapsed_frame_time.asSeconds();
-    //std::cout << "elapsed_frame_time_milliseconds: " << elapsed_frame_time_milliseconds << std::endl;
-    std::cout << sizeof(sf::Vector2f) << std::endl;
+    std::cout << "elapsed_frame_time_milliseconds: " << elapsed_frame_time_milliseconds << std::endl;
 
 
 
@@ -105,6 +117,7 @@ int main()
 
     bomb.move(0.0f, 100.0f * elapsed_frame_time_seconds);
 
+    entities.update_positions_and_tex_coords(elapsed_frame_time_seconds);
 
     /* draw */
     window.clear(sf::Color::Black);
@@ -114,6 +127,7 @@ int main()
     // draw entities
     window.draw(local_player);
     window.draw(bomb);
+    window.draw(entities.vertex_buffer, entities.vertice_count, sf::Quads, &entities.sprite_sheet_texture);
     // draw HUD (if decided to have static HUD)
     // draw options if requested
 
