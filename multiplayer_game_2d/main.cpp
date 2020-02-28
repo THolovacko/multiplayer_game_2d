@@ -51,10 +51,24 @@ int main()
   entities.types[2] = gameplay_entities_type_and_sprite_sheet_row_index::BOMB;
   entities.types[3] = gameplay_entities_type_and_sprite_sheet_row_index::BOMB;
   entities.types[4] = gameplay_entities_type_and_sprite_sheet_row_index::BOMB;
-  entities.velocities[1] = sf::Vector2f(0.0f,-64.0f);
+  entities.animation_indexes[0] = 1;
+  entities.animation_indexes[1] = 1;
+  entities.animation_indexes[2] = 1;
+  entities.velocities[0] = sf::Vector2f(0.0f, 64.0f);
+  entities.velocities[1] = sf::Vector2f(0.0f,64.0f);
   entities.velocities[2] = sf::Vector2f(16.0f,32.0f);
-  entities.velocities[3] = sf::Vector2f(32.0f,192.0f);
+  entities.velocities[3] = sf::Vector2f(32.0f,100.0f);
   entities.velocities[4] = sf::Vector2f(0.0f,16.0f);
+
+  // initialize entity positions to (0,0)
+  for(int i=0; i < entities.vertice_count; i+=4)
+  {
+    entities.vertex_buffer[i].position   = sf::Vector2f(0.0f, 0.0f);
+    entities.vertex_buffer[i+1].position = sf::Vector2f(entities.sprite_sheet_side_length * 3, entities.sprite_sheet_side_length * 3);
+    entities.vertex_buffer[i+2].position = sf::Vector2f(entities.sprite_sheet_side_length * 3, entities.sprite_sheet_side_length * 3);
+    entities.vertex_buffer[i+3].position = sf::Vector2f(0.0f, entities.sprite_sheet_side_length * 3);
+  }
+
 
   /* setup and run game loop */
   sf::Event window_event;

@@ -57,7 +57,7 @@ struct gameplay_entities
     // update positions based on velocity
     for(int i=0,vertex=0; i < max_size; ++i,vertex += 4)
     {
-      velocity = velocities[i] * (elapsed_frame_time_seconds * is_garbage_flags[i]);
+      velocity = velocities[i] * (elapsed_frame_time_seconds * !is_garbage_flags[i]);
 
       vertex_buffer[vertex].position   += velocity;
       vertex_buffer[vertex+1].position += velocity;
@@ -68,8 +68,8 @@ struct gameplay_entities
     // update tex coords based on type and animation index
     for(int i=0,vertex=0; i < max_size; ++i,vertex += 4)
     {
-      sprite_sheet_y_position = (float) static_cast<int>(types[i]) * (sprite_sheet_side_length * is_garbage_flags[i]);
-      sprite_sheet_x_position = (float) animation_indexes[i] * sprite_sheet_side_length * is_garbage_flags[i];
+      sprite_sheet_y_position = (float) static_cast<int>(types[i]) * (sprite_sheet_side_length * !is_garbage_flags[i]);
+      sprite_sheet_x_position = (float) animation_indexes[i] * sprite_sheet_side_length * !is_garbage_flags[i];
 
       vertex_buffer[vertex].texCoords   = sf::Vector2f(sprite_sheet_x_position, sprite_sheet_y_position);
       vertex_buffer[vertex+1].texCoords = sf::Vector2f(sprite_sheet_x_position + sprite_sheet_side_length, sprite_sheet_y_position);
