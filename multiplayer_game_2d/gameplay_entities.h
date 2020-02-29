@@ -26,9 +26,10 @@ struct gameplay_entities
   const int vertice_count = p_max_size * 4; // 4 vertices per entity
 
   gameplay_entities_type_and_sprite_sheet_row_index types[p_max_size] = {gameplay_entities_type_and_sprite_sheet_row_index::NONE}; // type of gameplay entity that's also used to specify row in sprite_sheet
-  int animation_indexes[p_max_size] = {0};                                                                       // current frame for animation
-  sf::Vector2f velocities[p_max_size];                                                                           // how many pixels per second to move in x and y directions
-  bool is_garbage_flags[p_max_size];                                                                             // memory at this index is overwritable when true
+  int animation_indexes[p_max_size] = {0};                                                                                         // current frame for animation
+  sf::Vector2f velocities[p_max_size];                                                                                             // how many pixels per second to move in x and y directions
+  bool is_garbage_flags[p_max_size];                                                                                               // memory at this index is overwritable when true
+
 
   gameplay_entities(const char* sprite_sheet_texture_file_path, const int p_sprite_sheet_side_length) : sprite_sheet_side_length(p_sprite_sheet_side_length)
   {
@@ -68,7 +69,7 @@ struct gameplay_entities
     // update tex coords based on type and animation index
     for(int i=0,vertex=0; i < max_size; ++i,vertex += 4)
     {
-      sprite_sheet_y_position = (float) static_cast<int>(types[i]) * (sprite_sheet_side_length * !is_garbage_flags[i]);
+      sprite_sheet_y_position = (float) (sprite_sheet_texture.getSize().y - sprite_sheet_side_length) - static_cast<int>(types[i]) * sprite_sheet_side_length * !is_garbage_flags[i];
       sprite_sheet_x_position = (float) animation_indexes[i] * sprite_sheet_side_length * !is_garbage_flags[i];
 
       vertex_buffer[vertex].texCoords   = sf::Vector2f(sprite_sheet_x_position, sprite_sheet_y_position);
