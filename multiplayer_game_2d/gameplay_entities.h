@@ -4,9 +4,9 @@
 
 namespace
 {
-  sf::Vector2f velocity;
-  float sprite_sheet_y_position;
-  float sprite_sheet_x_position;
+  sf::Vector2f current_velocity;
+  float current_sprite_sheet_y_position;
+  float current_sprite_sheet_x_position;
 }
 
 enum class gameplay_entities_type_and_sprite_sheet_row_index : int
@@ -21,7 +21,7 @@ struct gameplay_entities
 {
   sf::Vertex vertex_buffer[p_max_size * 4]; // 4 vertices per entity
   sf::Texture sprite_sheet_texture;         // a sprite sheet where each row is a separate entity and each column is a different frame for an animation (the first row is transparent)
-  const int sprite_sheet_side_length;       // the pixel length and width of each sprite
+  const int sprite_sheet_side_length;       // the pixel length and width of each entity animation frame
   const int max_size = p_max_size;
   const int vertice_count = p_max_size * 4; // 4 vertices per entity
 
@@ -56,26 +56,26 @@ struct gameplay_entities
   void update_positions_and_tex_coords(const float elapsed_frame_time_seconds)
   {
     // update positions based on velocity
-    for(int i=0,vertex=0; i < max_size; ++i,vertex += 4)
+    for(int entity_index=0,vertex=0; entity_index < max_size; ++entity_index,vertex += 4)
     {
-      velocity = velocities[i] * (elapsed_frame_time_seconds * !is_garbage_flags[i]);
+      current_velocity = velocities[entity_index] * (elapsed_frame_time_seconds * !is_garbage_flags[entity_index]);
 
-      vertex_buffer[vertex].position   += velocity;
-      vertex_buffer[vertex+1].position += velocity;
-      vertex_buffer[vertex+2].position += velocity;
-      vertex_buffer[vertex+3].position += velocity;
+      vertex_buffer[vertex].position   += current_velocity;
+      vertex_buffer[vertex+1].position += current_velocity;
+      vertex_buffer[vertex+2].position += current_velocity;
+      vertex_buffer[vertex+3].position += current_velocity;
     }
 
     // update tex coords based on type and animation index
-    for(int i=0,vertex=0; i < max_size; ++i,vertex += 4)
+    for(int entity_index=0,vertex=0; entity_index < max_size; ++entity_index,vertex += 4)
     {
-      sprite_sheet_y_position = (float) (sprite_sheet_texture.getSize().y - sprite_sheet_side_length) - static_cast<int>(types[i]) * sprite_sheet_side_length * !is_garbage_flags[i];
-      sprite_sheet_x_position = (float) animation_indexes[i] * sprite_sheet_side_length * !is_garbage_flags[i];
+      current_sprite_sheet_y_position = (float) (sprite_sheet_texture.getSize().y - sprite_sheet_side_length) - static_cast<int>(types[entity_index]) * sprite_sheet_side_length * !is_garbage_flags[entity_index];
+      current_sprite_sheet_x_position = (float) animation_indexes[entity_index] * sprite_sheet_side_length * !is_garbage_flags[entity_index];
 
-      vertex_buffer[vertex].texCoords   = sf::Vector2f(sprite_sheet_x_position, sprite_sheet_y_position);
-      vertex_buffer[vertex+1].texCoords = sf::Vector2f(sprite_sheet_x_position + sprite_sheet_side_length, sprite_sheet_y_position);
-      vertex_buffer[vertex+2].texCoords = sf::Vector2f(sprite_sheet_x_position + sprite_sheet_side_length, sprite_sheet_y_position + sprite_sheet_side_length);
-      vertex_buffer[vertex+3].texCoords = sf::Vector2f(sprite_sheet_x_position, sprite_sheet_y_position + sprite_sheet_side_length);
+      vertex_buffer[vertex].texCoords   = sf::Vector2f(current_sprite_sheet_x_position, current_sprite_sheet_y_position);
+      vertex_buffer[vertex+1].texCoords = sf::Vector2f(current_sprite_sheet_x_position + sprite_sheet_side_length, current_sprite_sheet_y_position);
+      vertex_buffer[vertex+2].texCoords = sf::Vector2f(current_sprite_sheet_x_position + sprite_sheet_side_length, current_sprite_sheet_y_position + sprite_sheet_side_length);
+      vertex_buffer[vertex+3].texCoords = sf::Vector2f(current_sprite_sheet_x_position, current_sprite_sheet_y_position + sprite_sheet_side_length);
     }
   }
 };
