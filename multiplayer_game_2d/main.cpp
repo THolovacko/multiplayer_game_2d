@@ -16,7 +16,7 @@ int main()
   /* create window */
   sf::VideoMode desktop_video_mode = sf::VideoMode::getDesktopMode();
   sf::RenderWindow window(desktop_video_mode, "2D Multiplayer Game", sf::Style::Fullscreen);
-  window.setVerticalSyncEnabled(true);
+  //window.setVerticalSyncEnabled(true);
   window.setActive(true);
   sf::Vector2u window_size = window.getSize();
 
