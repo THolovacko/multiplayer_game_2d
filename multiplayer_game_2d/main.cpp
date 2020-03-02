@@ -6,9 +6,8 @@
 #include "gameplay_entities.h"
 
 
-
-#define TILE_MAP_WIDTH              16
-#define TILE_MAP_LENGTH             9
+#define TILE_MAP_WIDTH              16  // in pixels
+#define TILE_MAP_LENGTH             9   // in pixels
 #define TILE_MAP_TEXTURE_SIDE_SIZE  64  // in pixels
 
 
@@ -26,35 +25,35 @@ int main()
   sf::Sound tingling;
   tingling.setBuffer(tingling_sound_buffer);
   
-  tile_map<TILE_MAP_WIDTH,TILE_MAP_LENGTH> test_map_background("Assets/Images/test_map_background.png", (float) window_size.x, (float) window_size.y, TILE_MAP_TEXTURE_SIDE_SIZE);
-  gameplay_entities<TILE_MAP_WIDTH * TILE_MAP_LENGTH> game_entities("Assets/Images/gameplay_entities.png", TILE_MAP_TEXTURE_SIDE_SIZE * 3); // need to be able to handle a single gameplay entity per tile
+  tile_map<TILE_MAP_WIDTH,TILE_MAP_LENGTH>* test_map_background = new tile_map<TILE_MAP_WIDTH,TILE_MAP_LENGTH>("Assets/Images/test_map_background.png", (float) window_size.x, (float) window_size.y, TILE_MAP_TEXTURE_SIDE_SIZE);
+  gameplay_entities<TILE_MAP_WIDTH * TILE_MAP_LENGTH>* game_entities = new gameplay_entities<TILE_MAP_WIDTH * TILE_MAP_LENGTH>("Assets/Images/gameplay_entities.png", TILE_MAP_TEXTURE_SIDE_SIZE * 3); // need to be able to handle a single gameplay entity per tile
 
-  game_entities.is_garbage_flags[0] = false;
-  game_entities.is_garbage_flags[1] = false;
-  game_entities.is_garbage_flags[2] = false;
-  game_entities.is_garbage_flags[3] = false;
-  game_entities.is_garbage_flags[4] = false;
-  game_entities.types[0] = gameplay_entities_type_and_sprite_sheet_row_index::MARIO;
-  game_entities.types[1] = gameplay_entities_type_and_sprite_sheet_row_index::BOMB;
-  game_entities.types[2] = gameplay_entities_type_and_sprite_sheet_row_index::BOMB;
-  game_entities.types[3] = gameplay_entities_type_and_sprite_sheet_row_index::BOMB;
-  game_entities.types[4] = gameplay_entities_type_and_sprite_sheet_row_index::BOMB;
-  game_entities.animation_indexes[0] = 2;
-  game_entities.animation_indexes[1] = 1;
-  game_entities.animation_indexes[2] = 2;
-  game_entities.velocities[0] = sf::Vector2f(0.0f, 0.0f);
-  game_entities.velocities[1] = sf::Vector2f(64.0f,0.0f);
-  game_entities.velocities[2] = sf::Vector2f(16.0f,32.0f);
-  game_entities.velocities[3] = sf::Vector2f(32.0f,12.0f);
-  game_entities.velocities[4] = sf::Vector2f(0.0f,0.0f);
+  game_entities->is_garbage_flags[0] = false;
+  game_entities->is_garbage_flags[1] = false;
+  game_entities->is_garbage_flags[2] = false;
+  game_entities->is_garbage_flags[3] = false;
+  game_entities->is_garbage_flags[4] = false;
+  game_entities->types[0] = gameplay_entities_type_and_sprite_sheet_row_index::MARIO;
+  game_entities->types[1] = gameplay_entities_type_and_sprite_sheet_row_index::BOMB;
+  game_entities->types[2] = gameplay_entities_type_and_sprite_sheet_row_index::BOMB;
+  game_entities->types[3] = gameplay_entities_type_and_sprite_sheet_row_index::BOMB;
+  game_entities->types[4] = gameplay_entities_type_and_sprite_sheet_row_index::BOMB;
+  game_entities->animation_indexes[0] = 2;
+  game_entities->animation_indexes[1] = 1;
+  game_entities->animation_indexes[2] = 2;
+  game_entities->velocities[0] = sf::Vector2f(0.0f, 0.0f);
+  game_entities->velocities[1] = sf::Vector2f(64.0f,0.0f);
+  game_entities->velocities[2] = sf::Vector2f(16.0f,32.0f);
+  game_entities->velocities[3] = sf::Vector2f(32.0f,12.0f);
+  game_entities->velocities[4] = sf::Vector2f(0.0f,0.0f);
 
   // initialize entity positions to (0,0) origin
-  for(int i=0; i < game_entities.vertice_count; i+=4)
+  for(int i=0; i < game_entities->vertice_count; i+=4)
   {
-    game_entities.vertex_buffer[i].position   = sf::Vector2f(-test_map_background.tile_size_x, -test_map_background.tile_size_y * 2);
-    game_entities.vertex_buffer[i+1].position = sf::Vector2f(2 *test_map_background.tile_size_x, -test_map_background.tile_size_y * 2);
-    game_entities.vertex_buffer[i+2].position = sf::Vector2f(test_map_background.tile_size_x * 2, test_map_background.tile_size_y);
-    game_entities.vertex_buffer[i+3].position = sf::Vector2f(-test_map_background.tile_size_x, test_map_background.tile_size_y);
+    game_entities->vertex_buffer[i].position   = sf::Vector2f(-test_map_background->tile_size_x, -test_map_background->tile_size_y * 2);
+    game_entities->vertex_buffer[i+1].position = sf::Vector2f(2 *test_map_background->tile_size_x, -test_map_background->tile_size_y * 2);
+    game_entities->vertex_buffer[i+2].position = sf::Vector2f(test_map_background->tile_size_x * 2, test_map_background->tile_size_y);
+    game_entities->vertex_buffer[i+3].position = sf::Vector2f(-test_map_background->tile_size_x, test_map_background->tile_size_y);
   }
 
 
@@ -73,7 +72,8 @@ int main()
     elapsed_frame_time_milliseconds = elapsed_frame_time.asMilliseconds();
     elapsed_frame_time_microseconds = elapsed_frame_time.asMicroseconds();
     elapsed_frame_time_seconds      = elapsed_frame_time.asSeconds();
-    std::cout << "elapsed_frame_time_milliseconds: " << elapsed_frame_time_milliseconds << std::endl;
+    if (elapsed_frame_time_milliseconds > 16)
+      std::cout << "elapsed_frame_time_milliseconds: " << elapsed_frame_time_milliseconds << std::endl;
 
 
 
@@ -87,21 +87,21 @@ int main()
               break;
 
         case sf::Event::KeyPressed:
-              if (window_event.key.code == sf::Keyboard::Left)   game_entities.velocities[0] = sf::Vector2f( (float) -2 * test_map_background.tile_size_x, 0.0f );
-              if (window_event.key.code == sf::Keyboard::Right)  game_entities.velocities[0] = sf::Vector2f( (float) 2 * test_map_background.tile_size_x, 0.0f  );
-              if (window_event.key.code == sf::Keyboard::Up)     game_entities.velocities[0] = sf::Vector2f( 0.0f, (float) -2 * test_map_background.tile_size_y );
-              if (window_event.key.code == sf::Keyboard::Down)   game_entities.velocities[0] = sf::Vector2f( 0.0f, (float)  2 * test_map_background.tile_size_y );
+              if (window_event.key.code == sf::Keyboard::Left)   game_entities->velocities[0] = sf::Vector2f( (float) -2 * test_map_background->tile_size_x, 0.0f );
+              if (window_event.key.code == sf::Keyboard::Right)  game_entities->velocities[0] = sf::Vector2f( (float) 2 * test_map_background->tile_size_x, 0.0f  );
+              if (window_event.key.code == sf::Keyboard::Up)     game_entities->velocities[0] = sf::Vector2f( 0.0f, (float) -2 * test_map_background->tile_size_y );
+              if (window_event.key.code == sf::Keyboard::Down)   game_entities->velocities[0] = sf::Vector2f( 0.0f, (float)  2 * test_map_background->tile_size_y );
               if (window_event.key.code == sf::Keyboard::T)      tingling.play();
 
               if (window_event.key.code == sf::Keyboard::P)      // use for testing random stuff
-                                                                 game_entities.animation_indexes[1] = (game_entities.animation_indexes[1] + 1) % 3;
+                                                                 game_entities->animation_indexes[1] = (game_entities->animation_indexes[1] + 1) % 3;
               break;
 
         case sf::Event::KeyReleased:
-              if (window_event.key.code == sf::Keyboard::Left)   game_entities.velocities[0] = sf::Vector2f(0.0f, 0.0f);
-              if (window_event.key.code == sf::Keyboard::Right)  game_entities.velocities[0] = sf::Vector2f(0.0f, 0.0f);
-              if (window_event.key.code == sf::Keyboard::Up)     game_entities.velocities[0] = sf::Vector2f(0.0f, 0.0f);
-              if (window_event.key.code == sf::Keyboard::Down)   game_entities.velocities[0] = sf::Vector2f(0.0f, 0.0f);
+              if (window_event.key.code == sf::Keyboard::Left)   game_entities->velocities[0] = sf::Vector2f(0.0f, 0.0f);
+              if (window_event.key.code == sf::Keyboard::Right)  game_entities->velocities[0] = sf::Vector2f(0.0f, 0.0f);
+              if (window_event.key.code == sf::Keyboard::Up)     game_entities->velocities[0] = sf::Vector2f(0.0f, 0.0f);
+              if (window_event.key.code == sf::Keyboard::Down)   game_entities->velocities[0] = sf::Vector2f(0.0f, 0.0f);
               break;
 
         default:
@@ -112,27 +112,27 @@ int main()
 
 
     /* calculate gameplay stuff */
-    test_map_background.bitmap[0] = 0;
-    test_map_background.bitmap[1] = 1;
-    test_map_background.bitmap[2] = 2;
-    test_map_background.bitmap[3] = 3;
-    test_map_background.bitmap[4] = 3;
-    test_map_background.bitmap[5] = 2;
-    test_map_background.bitmap[6] = 1;
-    test_map_background.bitmap[7] = 0;
-    test_map_background.bitmap[15] = 2;
-    test_map_background.bitmap[143] = 2;
-    test_map_background.update_tex_coords_from_bitmap();
+    test_map_background->bitmap[0] = 0;
+    test_map_background->bitmap[1] = 1;
+    test_map_background->bitmap[2] = 2;
+    test_map_background->bitmap[3] = 3;
+    test_map_background->bitmap[4] = 3;
+    test_map_background->bitmap[5] = 2;
+    test_map_background->bitmap[6] = 1;
+    test_map_background->bitmap[7] = 0;
+    test_map_background->bitmap[15] = 2;
+    test_map_background->bitmap[143] = 2;
+    test_map_background->update_tex_coords_from_bitmap();
 
-    game_entities.update_positions_and_tex_coords(elapsed_frame_time_seconds);
+    game_entities->update_positions_and_tex_coords(elapsed_frame_time_seconds);
 
 
 
     /* draw */
     window.clear(sf::Color::Black);
 
-    window.draw(test_map_background.vertex_buffer, test_map_background.vertice_count, sf::Quads, &test_map_background.tiles_texture);
-    window.draw(game_entities.vertex_buffer, game_entities.vertice_count, sf::Quads, &game_entities.sprite_sheet_texture);
+    window.draw(test_map_background->vertex_buffer, test_map_background->vertice_count, sf::Quads, &test_map_background->tiles_texture);
+    window.draw(game_entities->vertex_buffer, game_entities->vertice_count, sf::Quads, &game_entities->sprite_sheet_texture);
     // draw HUD (if decided to have static HUD)
     // draw options if requested
 
