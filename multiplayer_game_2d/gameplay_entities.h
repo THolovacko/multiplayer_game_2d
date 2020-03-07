@@ -44,12 +44,12 @@ struct gameplay_entities
     for(auto& vertex : vertex_buffer)
     {
       vertex.position  = sf::Vector2f(0.0f, 0.0f);
-      vertex.texCoords = sf::Vector2f(0.0f,0.0f);
+      vertex.texCoords = sf::Vector2f(0.0f, 0.0f);
     }
 
     for(auto& default_velocity: velocities)
     {
-      default_velocity = sf::Vector2f(0.0f,0.0f);
+      default_velocity = sf::Vector2f(0.0f, 0.0f);
     }
   }
 
