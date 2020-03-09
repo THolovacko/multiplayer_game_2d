@@ -19,11 +19,12 @@ enum class gameplay_entities_type_and_sprite_sheet_row_index : int
 template<int p_max_size>
 struct gameplay_entities
 {
-  sf::Vertex vertex_buffer[p_max_size * 4]; // 4 vertices per entity
-  sf::Texture sprite_sheet_texture;         // a sprite sheet where each row is a separate entity and each column is a different frame for an animation (the first row is transparent)
-  const int sprite_sheet_side_length;       // the pixel length and width of each entity animation frame
+  sf::Vertex vertex_buffer[p_max_size * 4];           // 4 vertices per entity
+  sf::Texture sprite_sheet_texture;                   // a sprite sheet where each row is a separate entity and each column is a different frame for an animation (the first row is transparent)
+  sf::Vector2f collision_vertices[p_max_size * 4];    // 4 vertices per entity [top-left, top-right, bottom-right, bottom-left]
+  const int sprite_sheet_side_length;                 // the pixel length and width of each entity animation frame
   const int max_size = p_max_size;
-  const int vertice_count = p_max_size * 4; // 4 vertices per entity
+  const int vertice_count = p_max_size * 4;           // 4 vertices per entity
 
   gameplay_entities_type_and_sprite_sheet_row_index types[p_max_size] = {gameplay_entities_type_and_sprite_sheet_row_index::NONE}; // type of gameplay entity that's also used to specify row in sprite_sheet
   int animation_indexes[p_max_size] = {0};                                                                                         // current frame for animation
@@ -51,6 +52,11 @@ struct gameplay_entities
     {
       default_velocity = sf::Vector2f(0.0f, 0.0f);
     }
+
+    for(auto& collision_vertice : collision_vertices)
+    {
+      collision_vertice = sf::Vector2f(0.0f, 0.0f);
+    }
   }
 
   void update_positions_and_tex_coords(const float elapsed_frame_time_seconds)
@@ -64,6 +70,11 @@ struct gameplay_entities
       vertex_buffer[vertex+1].position += current_velocity;
       vertex_buffer[vertex+2].position += current_velocity;
       vertex_buffer[vertex+3].position += current_velocity;
+
+      collision_vertices[vertex]   += current_velocity;
+      collision_vertices[vertex+1] += current_velocity;
+      collision_vertices[vertex+2] += current_velocity;
+      collision_vertices[vertex+3] += current_velocity;
     }
 
     // update tex coords based on type and animation index

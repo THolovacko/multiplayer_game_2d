@@ -56,6 +56,14 @@ int main()
     game_entities->vertex_buffer[i+3].position = sf::Vector2f(-test_map_background->tile_size_x, test_map_background->tile_size_y);
   }
 
+  // initialize default collision rectangles
+  for(int i=0; i < game_entities->vertice_count; i+=4)
+  {
+    game_entities->collision_vertices[i]   = game_entities->vertex_buffer[i].position + sf::Vector2f(test_map_background->tile_size_x, 2.0f * test_map_background->tile_size_y);
+    game_entities->collision_vertices[i+1] = game_entities->vertex_buffer[i].position + sf::Vector2f(-1.0f * test_map_background->tile_size_x, 2.0f * test_map_background->tile_size_y);
+    game_entities->collision_vertices[i+2] = game_entities->vertex_buffer[i].position + sf::Vector2f(-1.0f * test_map_background->tile_size_x, 0.0f);
+    game_entities->collision_vertices[i+3] = game_entities->vertex_buffer[i].position + sf::Vector2f(test_map_background->tile_size_x, 0.0f);
+  }
 
   /* setup and run game loop */
   sf::Event window_event;
