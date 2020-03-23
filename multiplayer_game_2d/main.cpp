@@ -7,7 +7,7 @@
 
 
 #define TILE_MAP_WIDTH              16  // in pixels
-#define TILE_MAP_LENGTH             9   // in pixels
+#define TILE_MAP_HEIGHT             9   // in pixels
 #define TILE_MAP_TEXTURE_SIDE_SIZE  64  // in pixels
 
 
@@ -25,8 +25,8 @@ int main()
   sf::Sound tingling;
   tingling.setBuffer(tingling_sound_buffer);
   
-  tile_map<TILE_MAP_WIDTH,TILE_MAP_LENGTH>* test_map_background = new tile_map<TILE_MAP_WIDTH,TILE_MAP_LENGTH>("Assets/Images/test_map_background.png", (float) window_size.x, (float) window_size.y, TILE_MAP_TEXTURE_SIDE_SIZE);
-  gameplay_entities<TILE_MAP_WIDTH * TILE_MAP_LENGTH>* game_entities = new gameplay_entities<TILE_MAP_WIDTH * TILE_MAP_LENGTH>("Assets/Images/gameplay_entities.png", TILE_MAP_TEXTURE_SIDE_SIZE * 3); // need to be able to handle a single gameplay entity per tile
+  tile_map<TILE_MAP_WIDTH,TILE_MAP_HEIGHT>* test_map_background = new tile_map<TILE_MAP_WIDTH,TILE_MAP_HEIGHT>("Assets/Images/test_map_background.png", (float) window_size.x, (float) window_size.y, TILE_MAP_TEXTURE_SIDE_SIZE);
+  gameplay_entities<TILE_MAP_WIDTH * TILE_MAP_HEIGHT>* game_entities = new gameplay_entities<TILE_MAP_WIDTH * TILE_MAP_HEIGHT>("Assets/Images/gameplay_entities.png", TILE_MAP_TEXTURE_SIDE_SIZE * 3); // need to be able to handle a single gameplay entity per tile
 
   game_entities->is_garbage_flags[0] = false;
   game_entities->is_garbage_flags[1] = false;
