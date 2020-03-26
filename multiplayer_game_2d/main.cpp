@@ -168,6 +168,8 @@ int main()
 
     game_entities->update_positions_and_tex_coords(elapsed_frame_time_seconds);
 
+    collision_detection::update_gameplay_object_ids_per_tile(*test_map_background, *game_entities);
+
 
 
     /* draw */
