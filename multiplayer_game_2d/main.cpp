@@ -1,6 +1,7 @@
 #include <SFML/Graphics.hpp>
 #include <SFML/Audio.hpp>
 #include <iostream>
+#include <string.h>
 #include <windows.h>
 #include "tile_map.h"
 #include "gameplay_entities.h"
@@ -9,6 +10,37 @@
 #define TILE_MAP_WIDTH              16  // in pixels
 #define TILE_MAP_HEIGHT             9   // in pixels
 #define TILE_MAP_TEXTURE_SIDE_SIZE  64  // in pixels
+
+
+
+namespace collision_detection
+{
+  int current_tile_index;
+  int current_gameplay_object_id;
+
+  int gameplay_object_ids_per_tile[9 * TILE_MAP_WIDTH * TILE_MAP_HEIGHT]; // 9 potential game objects (collisions) in an single tile
+
+  inline void update_gameplay_object_ids_per_tile(const tile_map<TILE_MAP_WIDTH,TILE_MAP_HEIGHT>& p_tile_map, const gameplay_entities<TILE_MAP_WIDTH * TILE_MAP_HEIGHT>& p_game_entities)
+  {
+    memset(gameplay_object_ids_per_tile, -1, sizeof(gameplay_object_ids_per_tile));
+
+    for(int i=0; i < p_tile_map.vertice_count; ++i)
+    {
+      current_tile_index = static_cast<int>( (p_game_entities.collision_vertices[i].y / p_tile_map.tile_size_y) * p_tile_map.width ) + static_cast<int>(p_game_entities.collision_vertices[i].x / p_tile_map.tile_size_x);
+
+      // find open slot in gameplay_object_ids_per_tile
+      for(int i=0; (i < 9) && !(gameplay_object_ids_per_tile[current_tile_index] == -1); ++i)
+      {
+        ++current_tile_index;
+      }
+
+      current_gameplay_object_id = i / 4;
+
+      gameplay_object_ids_per_tile[current_tile_index] = current_gameplay_object_id;
+    }
+  }
+}
+
 
 
 int main()
@@ -64,6 +96,8 @@ int main()
     game_entities->collision_vertices[i+2] = game_entities->vertex_buffer[i].position + sf::Vector2f(-1.0f * test_map_background->tile_size_x, 0.0f);
     game_entities->collision_vertices[i+3] = game_entities->vertex_buffer[i].position + sf::Vector2f(test_map_background->tile_size_x, 0.0f);
   }
+
+
 
   /* setup and run game loop */
   sf::Event window_event;
