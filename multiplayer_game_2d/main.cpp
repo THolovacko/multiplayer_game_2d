@@ -16,6 +16,7 @@
 namespace collision_detection
 {
   int current_tile_index;
+  int gameplay_object_ids_per_tile_index;
   int current_gameplay_object_id;
 
   int gameplay_object_ids_per_tile[9 * TILE_MAP_WIDTH * TILE_MAP_HEIGHT]; // 9 potential game objects (collisions) in an single tile
@@ -24,19 +25,21 @@ namespace collision_detection
   {
     memset(gameplay_object_ids_per_tile, -1, sizeof(gameplay_object_ids_per_tile));
 
-    for(int i=0; i < p_tile_map.vertice_count; ++i)
+    for(int vertex=0; vertex < p_game_entities.vertice_count; ++vertex)
     {
-      current_tile_index = static_cast<int>( (p_game_entities.collision_vertices[i].y / p_tile_map.tile_size_y) * p_tile_map.width ) + static_cast<int>(p_game_entities.collision_vertices[i].x / p_tile_map.tile_size_x);
+      current_gameplay_object_id = vertex / 4;
+      if (p_game_entities.is_garbage_flags[current_gameplay_object_id]) continue;
+
+      current_tile_index = static_cast<int>( (p_game_entities.collision_vertices[vertex].y / p_tile_map.tile_size_y) * p_tile_map.width ) + static_cast<int>(p_game_entities.collision_vertices[vertex].x / p_tile_map.tile_size_x);
+      gameplay_object_ids_per_tile_index = current_tile_index * 9;
 
       // find open slot in gameplay_object_ids_per_tile
-      for(int i=0; (i < 9) && !(gameplay_object_ids_per_tile[current_tile_index] == -1); ++i)
+      for(int i=0; (i < 9) && (gameplay_object_ids_per_tile[current_tile_index] != -1) && (gameplay_object_ids_per_tile[current_tile_index] != current_gameplay_object_id); ++i)
       {
-        ++current_tile_index;
+        ++gameplay_object_ids_per_tile_index;
       }
 
-      current_gameplay_object_id = i / 4;
-
-      gameplay_object_ids_per_tile[current_tile_index] = current_gameplay_object_id;
+      gameplay_object_ids_per_tile[gameplay_object_ids_per_tile_index] = current_gameplay_object_id;
     }
   }
 }
