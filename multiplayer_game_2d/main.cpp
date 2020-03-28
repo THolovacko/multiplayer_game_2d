@@ -10,6 +10,7 @@
 #define TILE_MAP_WIDTH              16  // in pixels
 #define TILE_MAP_HEIGHT             9   // in pixels
 #define TILE_MAP_TEXTURE_SIDE_SIZE  64  // in pixels
+#define MAX_COLLISIONS_PER_TILE     9   // potential game objects (collisions) in an single tile
 
 
 
@@ -19,7 +20,7 @@ namespace collision_detection
   int gameplay_object_ids_per_tile_index;
   int current_gameplay_object_id;
 
-  int gameplay_object_ids_per_tile[9 * TILE_MAP_WIDTH * TILE_MAP_HEIGHT]; // 9 potential game objects (collisions) in an single tile
+  int gameplay_object_ids_per_tile[MAX_COLLISIONS_PER_TILE * TILE_MAP_WIDTH * TILE_MAP_HEIGHT];
 
   inline void update_gameplay_object_ids_per_tile(const tile_map<TILE_MAP_WIDTH,TILE_MAP_HEIGHT>& p_tile_map, const gameplay_entities<TILE_MAP_WIDTH * TILE_MAP_HEIGHT>& p_game_entities)
   {
@@ -30,11 +31,18 @@ namespace collision_detection
       current_gameplay_object_id = vertex / 4;
       if (p_game_entities.is_garbage_flags[current_gameplay_object_id]) continue;
 
-      current_tile_index = static_cast<int>( (p_game_entities.collision_vertices[vertex].y / p_tile_map.tile_size_y) * p_tile_map.width ) + static_cast<int>(p_game_entities.collision_vertices[vertex].x / p_tile_map.tile_size_x);
-      gameplay_object_ids_per_tile_index = current_tile_index * 9;
+      int y_index = static_cast<int>(p_game_entities.collision_vertices[vertex].y / p_tile_map.tile_size_y);
+      if( (y_index < 0) || (y_index > (p_tile_map.height - 1)) ) continue;
+
+      int x_index = static_cast<int>(p_game_entities.collision_vertices[vertex].x / p_tile_map.tile_size_x);
+      if( (x_index < 0) || (x_index > (p_tile_map.width - 1)) ) continue;
+
+      current_tile_index = (y_index * p_tile_map.width) + x_index;
+
+      gameplay_object_ids_per_tile_index = current_tile_index * MAX_COLLISIONS_PER_TILE;
 
       // find open slot in gameplay_object_ids_per_tile
-      for(int i=0; (i < 9) && (gameplay_object_ids_per_tile[current_tile_index] != -1) && (gameplay_object_ids_per_tile[current_tile_index] != current_gameplay_object_id); ++i)
+      for(int i=0; (i < MAX_COLLISIONS_PER_TILE) && (gameplay_object_ids_per_tile[gameplay_object_ids_per_tile_index] != -1) && (gameplay_object_ids_per_tile[current_tile_index] != current_gameplay_object_id); ++i)
       {
         ++gameplay_object_ids_per_tile_index;
       }
