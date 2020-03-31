@@ -42,7 +42,7 @@ namespace collision_detection
       gameplay_object_ids_per_tile_index = current_tile_index * MAX_COLLISIONS_PER_TILE;
 
       // find open slot in gameplay_object_ids_per_tile
-      for(int i=0; (i < MAX_COLLISIONS_PER_TILE) && (gameplay_object_ids_per_tile[gameplay_object_ids_per_tile_index] != -1) && (gameplay_object_ids_per_tile[current_tile_index] != current_gameplay_object_id); ++i)
+      for(int i=0; (i < MAX_COLLISIONS_PER_TILE) && (gameplay_object_ids_per_tile[gameplay_object_ids_per_tile_index] != -1) && (gameplay_object_ids_per_tile[gameplay_object_ids_per_tile_index] != current_gameplay_object_id); ++i)
       {
         ++gameplay_object_ids_per_tile_index;
       }
@@ -102,10 +102,10 @@ int main()
   // initialize default collision rectangles
   for(int i=0; i < game_entities->vertice_count; i+=4)
   {
-    game_entities->collision_vertices[i]   = game_entities->vertex_buffer[i].position + sf::Vector2f(test_map_background->tile_size_x, 2.0f * test_map_background->tile_size_y);
-    game_entities->collision_vertices[i+1] = game_entities->vertex_buffer[i].position + sf::Vector2f(-1.0f * test_map_background->tile_size_x, 2.0f * test_map_background->tile_size_y);
-    game_entities->collision_vertices[i+2] = game_entities->vertex_buffer[i].position + sf::Vector2f(-1.0f * test_map_background->tile_size_x, 0.0f);
-    game_entities->collision_vertices[i+3] = game_entities->vertex_buffer[i].position + sf::Vector2f(test_map_background->tile_size_x, 0.0f);
+      game_entities->collision_vertices[i]   = sf::Vector2f(0.0f, 0.0f);
+      game_entities->collision_vertices[i+1] = sf::Vector2f(test_map_background->tile_size_x, 0.0f);
+      game_entities->collision_vertices[i+2] = sf::Vector2f(test_map_background->tile_size_x, test_map_background->tile_size_y);
+      game_entities->collision_vertices[i+3] = sf::Vector2f(0.0f, test_map_background->tile_size_y);
   }
 
 
