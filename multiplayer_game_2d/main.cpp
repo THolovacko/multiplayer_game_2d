@@ -13,9 +13,12 @@
 #define MAX_COLLISIONS_PER_TILE     9   // potential game objects (collisions) in an single tile
 
 
-
 namespace collision_detection
 {
+  /* @remember: all collision rectangles at max are tile-width    */
+  /* @remember: all gameplay objects only move up,down,left,right */
+  /* @remember: all gameplay objects must be completely on screen */
+
   int current_tile_index;
   int gameplay_object_ids_per_tile_index;
   int current_gameplay_object_id;
@@ -31,11 +34,17 @@ namespace collision_detection
       current_gameplay_object_id = vertex / 4;
       if (p_game_entities.is_garbage_flags[current_gameplay_object_id]) continue;
 
+      bool is_top_left_vertex = (vertex % 4) == 0;
+      bool is_on_y_boundary   = static_cast<int>(p_game_entities.collision_vertices[vertex].y) % static_cast<int>(p_tile_map.tile_size_y) == 0;
+      bool is_on_x_boundary   = static_cast<int>(p_game_entities.collision_vertices[vertex].x) % static_cast<int>(p_tile_map.tile_size_x) == 0;
+
       int y_index = static_cast<int>(p_game_entities.collision_vertices[vertex].y / p_tile_map.tile_size_y);
       if( (y_index < 0) || (y_index > (p_tile_map.height - 1)) ) continue;
+      if( is_on_y_boundary && !is_top_left_vertex ) --y_index;
 
       int x_index = static_cast<int>(p_game_entities.collision_vertices[vertex].x / p_tile_map.tile_size_x);
       if( (x_index < 0) || (x_index > (p_tile_map.width - 1)) ) continue;
+      if( is_on_x_boundary && !is_top_left_vertex ) --x_index;
 
       current_tile_index = (y_index * p_tile_map.width) + x_index;
 
