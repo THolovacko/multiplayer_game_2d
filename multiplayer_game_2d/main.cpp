@@ -34,17 +34,11 @@ namespace collision_detection
       current_gameplay_object_id = vertex / 4;
       if (p_game_entities.is_garbage_flags[current_gameplay_object_id]) continue;
 
-      bool is_top_left_vertex = (vertex % 4) == 0;
-      bool is_on_y_boundary   = static_cast<int>(p_game_entities.collision_vertices[vertex].y) % static_cast<int>(p_tile_map.tile_size_y) == 0;
-      bool is_on_x_boundary   = static_cast<int>(p_game_entities.collision_vertices[vertex].x) % static_cast<int>(p_tile_map.tile_size_x) == 0;
-
       int y_index = static_cast<int>(p_game_entities.collision_vertices[vertex].y / p_tile_map.tile_size_y);
       if( (y_index < 0) || (y_index > (p_tile_map.height - 1)) ) continue;
-      if( is_on_y_boundary && !is_top_left_vertex ) --y_index;
 
       int x_index = static_cast<int>(p_game_entities.collision_vertices[vertex].x / p_tile_map.tile_size_x);
       if( (x_index < 0) || (x_index > (p_tile_map.width - 1)) ) continue;
-      if( is_on_x_boundary && !is_top_left_vertex ) --x_index;
 
       current_tile_index = (y_index * p_tile_map.width) + x_index;
 
@@ -90,9 +84,9 @@ int main()
   game_entities->types[2] = gameplay_entities_type_and_sprite_sheet_row_index::BOMB;
   game_entities->types[3] = gameplay_entities_type_and_sprite_sheet_row_index::BOMB;
   game_entities->types[4] = gameplay_entities_type_and_sprite_sheet_row_index::BOMB;
-  game_entities->animation_indexes[0] = 2;
-  game_entities->animation_indexes[1] = 1;
-  game_entities->animation_indexes[2] = 2;
+  game_entities->animation_indexes[0] = 0;
+  game_entities->animation_indexes[1] = 0;
+  game_entities->animation_indexes[2] = 0;
   game_entities->velocities[0] = sf::Vector2f(0.0f, 0.0f);
   game_entities->velocities[1] = sf::Vector2f(64.0f,0.0f);
   game_entities->velocities[2] = sf::Vector2f(16.0f,32.0f);
@@ -111,10 +105,11 @@ int main()
   // initialize default collision rectangles
   for(int i=0; i < game_entities->vertice_count; i+=4)
   {
+      // the tile_size - 0.01f is to currently handle overlapping tile vertices
       game_entities->collision_vertices[i]   = sf::Vector2f(0.0f, 0.0f);
-      game_entities->collision_vertices[i+1] = sf::Vector2f(test_map_background->tile_size_x, 0.0f);
-      game_entities->collision_vertices[i+2] = sf::Vector2f(test_map_background->tile_size_x, test_map_background->tile_size_y);
-      game_entities->collision_vertices[i+3] = sf::Vector2f(0.0f, test_map_background->tile_size_y);
+      game_entities->collision_vertices[i+1] = sf::Vector2f(test_map_background->tile_size_x - 0.01f, 0.0f);
+      game_entities->collision_vertices[i+2] = sf::Vector2f(test_map_background->tile_size_x - 0.01f, test_map_background->tile_size_y - 0.01f);
+      game_entities->collision_vertices[i+3] = sf::Vector2f(0.0f, test_map_background->tile_size_y - 0.01f);
   }
 
 
