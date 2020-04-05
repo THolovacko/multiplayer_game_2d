@@ -192,6 +192,7 @@ int main()
 
     window.draw(test_map_background->vertex_buffer, test_map_background->vertice_count, sf::Quads, &test_map_background->tiles_texture);
     window.draw(game_entities->vertex_buffer, game_entities->vertice_count, sf::Quads, &game_entities->sprite_sheet_texture);
+
     // draw HUD (if decided to have static HUD)
     // draw options if requested
 
