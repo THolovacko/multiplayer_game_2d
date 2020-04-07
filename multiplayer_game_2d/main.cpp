@@ -74,6 +74,7 @@ int main()
   tile_map<TILE_MAP_WIDTH,TILE_MAP_HEIGHT>* test_map_background = new tile_map<TILE_MAP_WIDTH,TILE_MAP_HEIGHT>("Assets/Images/test_map_background.png", (float) window_size.x, (float) window_size.y, TILE_MAP_TEXTURE_SIDE_SIZE);
   gameplay_entities<TILE_MAP_WIDTH * TILE_MAP_HEIGHT>* game_entities = new gameplay_entities<TILE_MAP_WIDTH * TILE_MAP_HEIGHT>("Assets/Images/gameplay_entities.png", TILE_MAP_TEXTURE_SIDE_SIZE * 3); // need to be able to handle a single gameplay entity per tile
 
+  
   game_entities->is_garbage_flags[0] = false;
   game_entities->is_garbage_flags[1] = false;
   game_entities->is_garbage_flags[2] = false;
@@ -192,6 +193,8 @@ int main()
 
     window.draw(test_map_background->vertex_buffer, test_map_background->vertice_count, sf::Quads, &test_map_background->tiles_texture);
     window.draw(game_entities->vertex_buffer, game_entities->vertice_count, sf::Quads, &game_entities->sprite_sheet_texture);
+
+    window.draw(test_map_background->generate_debug_line_vertices(sf::Color::Blue));
 
     // draw HUD (if decided to have static HUD)
     // draw options if requested

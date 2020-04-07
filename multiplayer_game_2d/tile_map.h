@@ -22,23 +22,23 @@ struct tile_map
     tiles_texture.loadFromFile(tiles_texture_file_path);
 
     // assign screen coordinates and texture coordinates for background
-    vertex_buffer[0].position  = sf::Vector2f(0.0f, 0.0f);
-    vertex_buffer[0].texCoords = sf::Vector2f(0.0f , 0.0f);
-    vertex_buffer[1].position  = sf::Vector2f(tile_size_x * width, 0);
-    vertex_buffer[1].texCoords = sf::Vector2f((float) tile_sheet_side_length, 0.0f);
-    vertex_buffer[2].position  = sf::Vector2f(tile_size_x * width, tile_size_y * height);
-    vertex_buffer[2].texCoords = sf::Vector2f((float) tile_sheet_side_length, (float) tile_sheet_side_length);
-    vertex_buffer[3].position  = sf::Vector2f(0.0f, tile_size_y * height);
-    vertex_buffer[3].texCoords = sf::Vector2f(0.0f, (float) tile_sheet_side_length);
+    this->vertex_buffer[0].position  = sf::Vector2f(0.0f, 0.0f);
+    this->vertex_buffer[0].texCoords = sf::Vector2f(0.0f , 0.0f);
+    this->vertex_buffer[1].position  = sf::Vector2f(tile_size_x * width, 0);
+    this->vertex_buffer[1].texCoords = sf::Vector2f((float) tile_sheet_side_length, 0.0f);
+    this->vertex_buffer[2].position  = sf::Vector2f(tile_size_x * width, tile_size_y * height);
+    this->vertex_buffer[2].texCoords = sf::Vector2f((float) tile_sheet_side_length, (float) tile_sheet_side_length);
+    this->vertex_buffer[3].position  = sf::Vector2f(0.0f, tile_size_y * height);
+    this->vertex_buffer[3].texCoords = sf::Vector2f(0.0f, (float) tile_sheet_side_length);
 
     // assign screen coordinates for each vertex in tiles
     for(int y=0,vertex=4; y < height; ++y)
     for(int x=0         ; x < width   ; ++x, vertex+=4)
     {
-      vertex_buffer[vertex].position   = sf::Vector2f(x * tile_size_x, y * tile_size_y);
-      vertex_buffer[vertex+1].position = sf::Vector2f((x+1) * tile_size_x, y * tile_size_y);
-      vertex_buffer[vertex+2].position = sf::Vector2f((x+1) * tile_size_x, (y+1) * tile_size_y);
-      vertex_buffer[vertex+3].position = sf::Vector2f(x * tile_size_x, (y+1) * tile_size_y);
+      this->vertex_buffer[vertex].position   = sf::Vector2f(x * tile_size_x, y * tile_size_y);
+      this->vertex_buffer[vertex+1].position = sf::Vector2f((x+1) * tile_size_x, y * tile_size_y);
+      this->vertex_buffer[vertex+2].position = sf::Vector2f((x+1) * tile_size_x, (y+1) * tile_size_y);
+      this->vertex_buffer[vertex+3].position = sf::Vector2f(x * tile_size_x, (y+1) * tile_size_y);
     }
   }
 
@@ -48,11 +48,42 @@ struct tile_map
     {
       texture_offset = bitmap[tile] * tile_sheet_side_length;
 
-      vertex_buffer[vertex].texCoords   = sf::Vector2f((float) texture_offset                         , 0.0f);
-      vertex_buffer[vertex+1].texCoords = sf::Vector2f((float) texture_offset + tile_sheet_side_length, 0.0f);
-      vertex_buffer[vertex+2].texCoords = sf::Vector2f((float) texture_offset + tile_sheet_side_length, (float) tile_sheet_side_length);
-      vertex_buffer[vertex+3].texCoords = sf::Vector2f((float) texture_offset                         , (float) tile_sheet_side_length);
+      this->vertex_buffer[vertex].texCoords   = sf::Vector2f((float) texture_offset                         , 0.0f);
+      this->vertex_buffer[vertex+1].texCoords = sf::Vector2f((float) texture_offset + tile_sheet_side_length, 0.0f);
+      this->vertex_buffer[vertex+2].texCoords = sf::Vector2f((float) texture_offset + tile_sheet_side_length, (float) tile_sheet_side_length);
+      this->vertex_buffer[vertex+3].texCoords = sf::Vector2f((float) texture_offset                         , (float) tile_sheet_side_length);
     }
+  }
+
+  sf::VertexArray generate_debug_line_vertices(const sf::Color color) const
+  {
+    int debug_lines_vertice_count = tile_count * 8; // 4 lines per tile and 2 vertices per line so 8 vertices per tile
+    sf::VertexArray debug_line_vertices(sf::Lines, debug_lines_vertice_count);
+
+    for(int i=0,tile_map_vertex=4; i < debug_lines_vertice_count; i+=8,tile_map_vertex+=4)
+    {
+      debug_line_vertices[i].position   = this->vertex_buffer[tile_map_vertex].position;
+      debug_line_vertices[i+1].position = this->vertex_buffer[tile_map_vertex+1].position;
+      debug_line_vertices[i].color      = color;
+      debug_line_vertices[i+1].color    = color;
+
+      debug_line_vertices[i+2].position = this->vertex_buffer[tile_map_vertex+1].position;
+      debug_line_vertices[i+3].position = this->vertex_buffer[tile_map_vertex+2].position;
+      debug_line_vertices[i+2].color    = color;
+      debug_line_vertices[i+3].color    = color;
+
+      debug_line_vertices[i+4].position = this->vertex_buffer[tile_map_vertex+2].position;
+      debug_line_vertices[i+5].position = this->vertex_buffer[tile_map_vertex+3].position;
+      debug_line_vertices[i+4].color    = color;
+      debug_line_vertices[i+5].color    = color;
+
+      debug_line_vertices[i+6].position = this->vertex_buffer[tile_map_vertex+3].position;
+      debug_line_vertices[i+7].position = this->vertex_buffer[tile_map_vertex].position;
+      debug_line_vertices[i+6].color    = color;
+      debug_line_vertices[i+7].color    = color;
+    }
+
+    return debug_line_vertices;
   }
 
 };
