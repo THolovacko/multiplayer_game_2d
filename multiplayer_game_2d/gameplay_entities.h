@@ -89,4 +89,76 @@ struct gameplay_entities
       vertex_buffer[vertex+3].texCoords = sf::Vector2f(current_sprite_sheet_x_position, current_sprite_sheet_y_position + sprite_sheet_side_length);
     }
   }
+
+  #ifdef _DEBUG
+    sf::VertexArray generate_debug_collision_line_vertices(const sf::Color color) const
+    {
+      int debug_collision_line_vertex_count = max_size * 8; // 4 lines per entity and 2 vertices per line so 8 vertices per entity
+      sf::VertexArray debug_collision_line_vertices(sf::Lines, debug_collision_line_vertex_count);
+
+      for(int i=0,entity_vertex=0; i < debug_collision_line_vertex_count; i+=8,entity_vertex+=4)
+      {
+        int current_entity_id = entity_vertex / 4;
+        if(is_garbage_flags[current_entity_id] == true) continue;
+
+        debug_collision_line_vertices[i].position   = this->collision_vertices[entity_vertex];
+        debug_collision_line_vertices[i+1].position = this->collision_vertices[entity_vertex+1];
+        debug_collision_line_vertices[i].color      = color;
+        debug_collision_line_vertices[i+1].color    = color;
+
+        debug_collision_line_vertices[i+2].position = this->collision_vertices[entity_vertex+1];
+        debug_collision_line_vertices[i+3].position = this->collision_vertices[entity_vertex+2];
+        debug_collision_line_vertices[i+2].color    = color;
+        debug_collision_line_vertices[i+3].color    = color;
+
+        debug_collision_line_vertices[i+4].position = this->collision_vertices[entity_vertex+2];
+        debug_collision_line_vertices[i+5].position = this->collision_vertices[entity_vertex+3];
+        debug_collision_line_vertices[i+4].color    = color;
+        debug_collision_line_vertices[i+5].color    = color;
+
+        debug_collision_line_vertices[i+6].position = this->collision_vertices[entity_vertex+3];
+        debug_collision_line_vertices[i+7].position = this->collision_vertices[entity_vertex];
+        debug_collision_line_vertices[i+6].color    = color;
+        debug_collision_line_vertices[i+7].color    = color;
+      }
+
+      return debug_collision_line_vertices;
+    }
+
+    sf::VertexArray generate_debug_line_vertices(const sf::Color color) const
+    {
+      int debug_line_vertex_count = max_size * 8; // 4 lines per entity and 2 vertices per line so 8 vertices per entity
+      sf::VertexArray debug_line_vertices(sf::Lines, debug_line_vertex_count);
+
+      for(int i=0,entity_vertex=0; i < debug_line_vertex_count; i+=8,entity_vertex+=4)
+      {
+        int current_entity_id = entity_vertex / 4;
+        if(is_garbage_flags[current_entity_id] == true) continue;
+
+        debug_line_vertices[i].position   = this->vertex_buffer[entity_vertex].position;
+        debug_line_vertices[i+1].position = this->vertex_buffer[entity_vertex+1].position;
+        debug_line_vertices[i].color      = color;
+        debug_line_vertices[i+1].color    = color;
+
+        debug_line_vertices[i+2].position = this->vertex_buffer[entity_vertex+1].position;
+        debug_line_vertices[i+3].position = this->vertex_buffer[entity_vertex+2].position;
+        debug_line_vertices[i+2].color    = color;
+        debug_line_vertices[i+3].color    = color;
+
+        debug_line_vertices[i+4].position = this->vertex_buffer[entity_vertex+2].position;
+        debug_line_vertices[i+5].position = this->vertex_buffer[entity_vertex+3].position;
+        debug_line_vertices[i+4].color    = color;
+        debug_line_vertices[i+5].color    = color;
+
+        debug_line_vertices[i+6].position = this->vertex_buffer[entity_vertex+3].position;
+        debug_line_vertices[i+7].position = this->vertex_buffer[entity_vertex].position;
+        debug_line_vertices[i+6].color    = color;
+        debug_line_vertices[i+7].color    = color;
+      }
+
+      return debug_line_vertices;
+    }
+  #endif
+
+
 };

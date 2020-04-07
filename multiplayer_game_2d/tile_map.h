@@ -55,35 +55,37 @@ struct tile_map
     }
   }
 
-  sf::VertexArray generate_debug_line_vertices(const sf::Color color) const
-  {
-    int debug_lines_vertice_count = tile_count * 8; // 4 lines per tile and 2 vertices per line so 8 vertices per tile
-    sf::VertexArray debug_line_vertices(sf::Lines, debug_lines_vertice_count);
-
-    for(int i=0,tile_map_vertex=4; i < debug_lines_vertice_count; i+=8,tile_map_vertex+=4)
+  #ifdef _DEBUG
+    sf::VertexArray generate_debug_line_vertices(const sf::Color color) const
     {
-      debug_line_vertices[i].position   = this->vertex_buffer[tile_map_vertex].position;
-      debug_line_vertices[i+1].position = this->vertex_buffer[tile_map_vertex+1].position;
-      debug_line_vertices[i].color      = color;
-      debug_line_vertices[i+1].color    = color;
+      int debug_lines_vertice_count = (tile_count + 1) * 8; // 4 lines per tile and 2 vertices per line so 8 vertices per tile, the additional 1 is for background tile
+      sf::VertexArray debug_line_vertices(sf::Lines, debug_lines_vertice_count);
 
-      debug_line_vertices[i+2].position = this->vertex_buffer[tile_map_vertex+1].position;
-      debug_line_vertices[i+3].position = this->vertex_buffer[tile_map_vertex+2].position;
-      debug_line_vertices[i+2].color    = color;
-      debug_line_vertices[i+3].color    = color;
+      for(int i=0,tile_map_vertex=0; i < debug_lines_vertice_count; i+=8,tile_map_vertex+=4)
+      {
+        debug_line_vertices[i].position   = this->vertex_buffer[tile_map_vertex].position;
+        debug_line_vertices[i+1].position = this->vertex_buffer[tile_map_vertex+1].position;
+        debug_line_vertices[i].color      = color;
+        debug_line_vertices[i+1].color    = color;
 
-      debug_line_vertices[i+4].position = this->vertex_buffer[tile_map_vertex+2].position;
-      debug_line_vertices[i+5].position = this->vertex_buffer[tile_map_vertex+3].position;
-      debug_line_vertices[i+4].color    = color;
-      debug_line_vertices[i+5].color    = color;
+        debug_line_vertices[i+2].position = this->vertex_buffer[tile_map_vertex+1].position;
+        debug_line_vertices[i+3].position = this->vertex_buffer[tile_map_vertex+2].position;
+        debug_line_vertices[i+2].color    = color;
+        debug_line_vertices[i+3].color    = color;
 
-      debug_line_vertices[i+6].position = this->vertex_buffer[tile_map_vertex+3].position;
-      debug_line_vertices[i+7].position = this->vertex_buffer[tile_map_vertex].position;
-      debug_line_vertices[i+6].color    = color;
-      debug_line_vertices[i+7].color    = color;
+        debug_line_vertices[i+4].position = this->vertex_buffer[tile_map_vertex+2].position;
+        debug_line_vertices[i+5].position = this->vertex_buffer[tile_map_vertex+3].position;
+        debug_line_vertices[i+4].color    = color;
+        debug_line_vertices[i+5].color    = color;
+
+        debug_line_vertices[i+6].position = this->vertex_buffer[tile_map_vertex+3].position;
+        debug_line_vertices[i+7].position = this->vertex_buffer[tile_map_vertex].position;
+        debug_line_vertices[i+6].color    = color;
+        debug_line_vertices[i+7].color    = color;
+      }
+
+      return debug_line_vertices;
     }
-
-    return debug_line_vertices;
-  }
+  #endif
 
 };

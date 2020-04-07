@@ -130,8 +130,11 @@ int main()
     elapsed_frame_time_milliseconds = elapsed_frame_time.asMilliseconds();
     elapsed_frame_time_microseconds = elapsed_frame_time.asMicroseconds();
     elapsed_frame_time_seconds      = elapsed_frame_time.asSeconds();
-    if (elapsed_frame_time_milliseconds > 16)
-      std::cout << "elapsed_frame_time_milliseconds: " << elapsed_frame_time_milliseconds << std::endl;
+
+    #ifdef _DEBUG
+      if (elapsed_frame_time_milliseconds > 16)
+        std::cout << "elapsed_frame_time_milliseconds: " << elapsed_frame_time_milliseconds << std::endl;
+    #endif
 
 
 
@@ -194,7 +197,11 @@ int main()
     window.draw(test_map_background->vertex_buffer, test_map_background->vertice_count, sf::Quads, &test_map_background->tiles_texture);
     window.draw(game_entities->vertex_buffer, game_entities->vertice_count, sf::Quads, &game_entities->sprite_sheet_texture);
 
-    window.draw(test_map_background->generate_debug_line_vertices(sf::Color::Blue));
+    #ifdef _DEBUG
+      window.draw(test_map_background->generate_debug_line_vertices(sf::Color::Blue));
+      window.draw(game_entities->generate_debug_collision_line_vertices(sf::Color::Red));
+      window.draw(game_entities->generate_debug_line_vertices(sf::Color::Yellow));
+    #endif
 
     // draw HUD (if decided to have static HUD)
     // draw options if requested
