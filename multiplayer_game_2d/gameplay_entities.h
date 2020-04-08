@@ -91,6 +91,8 @@ struct gameplay_entities
   }
 
   #ifdef _DEBUG
+    #include <string.h>
+
     sf::VertexArray generate_debug_collision_line_vertices(const sf::Color color) const
     {
       int debug_collision_line_vertex_count = max_size * 8; // 4 lines per entity and 2 vertices per line so 8 vertices per entity
@@ -157,6 +159,23 @@ struct gameplay_entities
       }
 
       return debug_line_vertices;
+    }
+
+    void generate_debug_index_text(sf::Text (&debug_entity_index_text)[p_max_size], const sf::Font& font, const sf::Color color) const
+    {
+      for(int entity_index=0; entity_index < p_max_size; ++entity_index)
+      {
+        if ( this->is_garbage_flags[entity_index] ) continue;
+
+        int character_size = static_cast<int>( this->collision_vertices[(entity_index * 4) + 1].x - this->collision_vertices[entity_index * 4].x ) / 4;
+
+        debug_entity_index_text[entity_index].setFont(font);
+        debug_entity_index_text[entity_index].setString(std::to_string(entity_index));
+        debug_entity_index_text[entity_index].setFillColor(color);
+        debug_entity_index_text[entity_index].setStyle(sf::Text::Bold);
+        debug_entity_index_text[entity_index].setCharacterSize(character_size);
+        debug_entity_index_text[entity_index].setPosition( this->collision_vertices[entity_index * 4] );
+      }
     }
   #endif
 

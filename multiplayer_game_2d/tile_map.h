@@ -56,6 +56,8 @@ struct tile_map
   }
 
   #ifdef _DEBUG
+    #include <string.h>
+
     sf::VertexArray generate_debug_line_vertices(const sf::Color color) const
     {
       int debug_lines_vertice_count = (tile_count + 1) * 8; // 4 lines per tile and 2 vertices per line so 8 vertices per tile, the additional 1 is for background tile
@@ -85,6 +87,21 @@ struct tile_map
       }
 
       return debug_line_vertices;
+    }
+
+    void generate_debug_tile_index_text(sf::Text (&debug_tile_index_text)[p_width * p_height], const sf::Font& font, const sf::Color color) const
+    {
+      int character_size = static_cast<int>(tile_size_x) / 4;
+
+      for(int i=0, tile_index=1; i < tile_count; ++tile_index, ++i)
+      {
+        debug_tile_index_text[i].setFont(font);
+        debug_tile_index_text[i].setString(std::to_string(i));
+        debug_tile_index_text[i].setFillColor(color);
+        debug_tile_index_text[i].setStyle(sf::Text::Bold);
+        debug_tile_index_text[i].setCharacterSize(character_size);
+        debug_tile_index_text[i].setPosition( this->vertex_buffer[tile_index * 4].position );
+      }
     }
   #endif
 

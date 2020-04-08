@@ -66,6 +66,12 @@ int main()
   window.setActive(true);
   sf::Vector2u window_size = window.getSize();
 
+  #ifdef _DEBUG
+    bool show_debug_data = true;
+    sf::Font mandalore_font;
+    mandalore_font.loadFromFile("Assets/Fonts/mandalore.ttf");
+  #endif
+
   sf::SoundBuffer tingling_sound_buffer;
   tingling_sound_buffer.loadFromFile("Assets/Sounds/tingling.wav");
   sf::Sound tingling;
@@ -163,6 +169,11 @@ int main()
               if (window_event.key.code == sf::Keyboard::Right)  game_entities->velocities[0] = sf::Vector2f(0.0f, 0.0f);
               if (window_event.key.code == sf::Keyboard::Up)     game_entities->velocities[0] = sf::Vector2f(0.0f, 0.0f);
               if (window_event.key.code == sf::Keyboard::Down)   game_entities->velocities[0] = sf::Vector2f(0.0f, 0.0f);
+
+              #ifdef _DEBUG
+                if ( window_event.key.code == sf::Keyboard::D ) show_debug_data = !show_debug_data;
+              #endif
+
               break;
 
         default:
@@ -198,9 +209,20 @@ int main()
     window.draw(game_entities->vertex_buffer, game_entities->vertice_count, sf::Quads, &game_entities->sprite_sheet_texture);
 
     #ifdef _DEBUG
-      window.draw(test_map_background->generate_debug_line_vertices(sf::Color::Blue));
-      window.draw(game_entities->generate_debug_collision_line_vertices(sf::Color::Red));
-      window.draw(game_entities->generate_debug_line_vertices(sf::Color::Yellow));
+      if(show_debug_data)
+      {
+        window.draw(test_map_background->generate_debug_line_vertices(sf::Color::Blue));
+        window.draw(game_entities->generate_debug_collision_line_vertices(sf::Color::Red));
+        window.draw(game_entities->generate_debug_line_vertices(sf::Color::Yellow));
+
+        sf::Text tile_index_text[TILE_MAP_WIDTH * TILE_MAP_HEIGHT];
+        test_map_background->generate_debug_tile_index_text(tile_index_text, mandalore_font, sf::Color::Blue);
+        for(auto& text : tile_index_text) window.draw(text);
+
+        sf::Text game_entity_index_text[TILE_MAP_WIDTH * TILE_MAP_HEIGHT];
+        game_entities->generate_debug_index_text(game_entity_index_text, mandalore_font, sf::Color::Yellow);
+        for(auto& text : game_entity_index_text) window.draw(text);
+      }
     #endif
 
     // draw HUD (if decided to have static HUD)
