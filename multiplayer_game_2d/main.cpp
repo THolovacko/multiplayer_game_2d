@@ -53,7 +53,27 @@ namespace collision_detection
       gameplay_object_ids_per_tile[gameplay_object_ids_per_tile_index] = current_gameplay_object_id;
     }
   }
-}
+
+  #ifdef _DEBUG
+    inline void print_gameplay_object_ids_per_tile()
+    {
+      std::cout << "\n";
+      for(int i=0; i < MAX_COLLISIONS_PER_TILE * TILE_MAP_WIDTH * TILE_MAP_HEIGHT; i+=9)
+      {
+        std::cout << "Tile index: " << i/9 << std::endl;
+
+        for(int collision_index=0; collision_index < MAX_COLLISIONS_PER_TILE; ++collision_index)
+        {
+          int entity_id = gameplay_object_ids_per_tile[i + collision_index];
+          if (entity_id == -1) continue;
+          std::cout << "\tid: " << entity_id << std::endl;
+        }
+      }
+      std::cout << "\n";
+    }
+  #endif
+
+} // collision_detection
 
 
 
@@ -95,10 +115,10 @@ int main()
   game_entities->animation_indexes[1] = 0;
   game_entities->animation_indexes[2] = 0;
   game_entities->velocities[0] = sf::Vector2f(0.0f, 0.0f);
-  game_entities->velocities[1] = sf::Vector2f(64.0f,0.0f);
+  game_entities->velocities[1] = sf::Vector2f(128.0f,0.0f);
   game_entities->velocities[2] = sf::Vector2f(16.0f,32.0f);
-  game_entities->velocities[3] = sf::Vector2f(32.0f,12.0f);
-  game_entities->velocities[4] = sf::Vector2f(0.0f,0.0f);
+  game_entities->velocities[3] = sf::Vector2f(100.0f,83.0f);
+  game_entities->velocities[4] = sf::Vector2f(-25.0f,-100.0f);
 
   // initialize entity positions to (0,0) origin
   for(int i=0; i < game_entities->vertice_count; i+=4)
@@ -112,11 +132,11 @@ int main()
   // initialize default collision rectangles
   for(int i=0; i < game_entities->vertice_count; i+=4)
   {
-      // the tile_size - 0.01f is to currently handle overlapping tile vertices
-      game_entities->collision_vertices[i]   = sf::Vector2f(0.0f, 0.0f);
-      game_entities->collision_vertices[i+1] = sf::Vector2f(test_map_background->tile_size_x - 0.01f, 0.0f);
-      game_entities->collision_vertices[i+2] = sf::Vector2f(test_map_background->tile_size_x - 0.01f, test_map_background->tile_size_y - 0.01f);
-      game_entities->collision_vertices[i+3] = sf::Vector2f(0.0f, test_map_background->tile_size_y - 0.01f);
+    // the tile_size - 0.01f is to currently handle overlapping tile vertices
+    game_entities->collision_vertices[i]   = sf::Vector2f(0.0f, 0.0f);
+    game_entities->collision_vertices[i+1] = sf::Vector2f(test_map_background->tile_size_x - 0.01f, 0.0f);
+    game_entities->collision_vertices[i+2] = sf::Vector2f(test_map_background->tile_size_x - 0.01f, test_map_background->tile_size_y - 0.01f);
+    game_entities->collision_vertices[i+3] = sf::Vector2f(0.0f, test_map_background->tile_size_y - 0.01f);
   }
 
 
@@ -213,7 +233,7 @@ int main()
       {
         window.draw(test_map_background->generate_debug_line_vertices(sf::Color::Blue));
         window.draw(game_entities->generate_debug_collision_line_vertices(sf::Color::Red));
-        window.draw(game_entities->generate_debug_line_vertices(sf::Color::Yellow));
+        //window.draw(game_entities->generate_debug_line_vertices(sf::Color::Yellow));
 
         sf::Text tile_index_text[TILE_MAP_WIDTH * TILE_MAP_HEIGHT];
         test_map_background->generate_debug_tile_index_text(tile_index_text, mandalore_font, sf::Color::Blue);
