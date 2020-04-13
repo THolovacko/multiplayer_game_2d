@@ -7,64 +7,75 @@
 #include "gameplay_entities.h"
 
 
+
 #define TILE_MAP_WIDTH              16  // in pixels
 #define TILE_MAP_HEIGHT             9   // in pixels
 #define TILE_MAP_TEXTURE_SIDE_SIZE  64  // in pixels
 #define MAX_COLLISIONS_PER_TILE     9   // potential game objects (collisions) in an single tile
 
 
-namespace collision_detection
+
+namespace game_entity_ids_per_tile
 {
   /* @remember: all collision rectangles at max are tile-width    */
-  /* @remember: all gameplay objects only move up,down,left,right */
-  /* @remember: all gameplay objects must be completely on screen */
 
   int current_tile_index;
-  int gameplay_object_ids_per_tile_index;
+  int current_tile_bucket_index;
   int current_gameplay_object_id;
+  int current_collision_vertex;
+  int y_index;
+  int x_index;
+  int bucket_offset;
 
-  int gameplay_object_ids_per_tile[MAX_COLLISIONS_PER_TILE * TILE_MAP_WIDTH * TILE_MAP_HEIGHT];
+  int tile_buckets[MAX_COLLISIONS_PER_TILE * TILE_MAP_WIDTH * TILE_MAP_HEIGHT]; // MAX_COLLISIONS_PER_TILE game_entity_ids per tile
 
-  inline void update_gameplay_object_ids_per_tile(const tile_map<TILE_MAP_WIDTH,TILE_MAP_HEIGHT>& p_tile_map, const gameplay_entities<TILE_MAP_WIDTH * TILE_MAP_HEIGHT>& p_game_entities)
+
+  inline void update(const tile_map<TILE_MAP_WIDTH,TILE_MAP_HEIGHT>& p_tile_map, const gameplay_entities<TILE_MAP_WIDTH * TILE_MAP_HEIGHT>& p_game_entities)
   {
-    memset(gameplay_object_ids_per_tile, -1, sizeof(gameplay_object_ids_per_tile));
+    memset(tile_buckets, -1, sizeof(tile_buckets));
 
-    for(int vertex=0; vertex < p_game_entities.vertice_count; ++vertex)
+    for(current_collision_vertex=0; current_collision_vertex < p_game_entities.vertex_count; ++current_collision_vertex) // vertex_count is same as collision_vertex_count
     {
-      current_gameplay_object_id = vertex / 4;
+      current_gameplay_object_id = current_collision_vertex / 4;
       if (p_game_entities.is_garbage_flags[current_gameplay_object_id]) continue;
 
-      int y_index = static_cast<int>(p_game_entities.collision_vertices[vertex].y / p_tile_map.tile_size_y);
-      if( (y_index < 0) || (y_index > (p_tile_map.height - 1)) ) continue;
+      y_index = static_cast<int>(p_game_entities.collision_vertices[current_collision_vertex].y / p_tile_map.tile_size_y);
+      x_index = static_cast<int>(p_game_entities.collision_vertices[current_collision_vertex].x / p_tile_map.tile_size_x);
 
-      int x_index = static_cast<int>(p_game_entities.collision_vertices[vertex].x / p_tile_map.tile_size_x);
-      if( (x_index < 0) || (x_index > (p_tile_map.width - 1)) ) continue;
+      // check if vertice is visible
+      if(   (y_index < 0) 
+         || (y_index > (p_tile_map.height - 1)) 
+         || (x_index < 0)
+         || (x_index > (p_tile_map.width - 1))
+        ) continue;
+
 
       current_tile_index = (y_index * p_tile_map.width) + x_index;
+      current_tile_bucket_index = current_tile_index * MAX_COLLISIONS_PER_TILE;
 
-      gameplay_object_ids_per_tile_index = current_tile_index * MAX_COLLISIONS_PER_TILE;
 
-      // find open slot in gameplay_object_ids_per_tile
-      for(int i=0; (i < MAX_COLLISIONS_PER_TILE) && (gameplay_object_ids_per_tile[gameplay_object_ids_per_tile_index] != -1) && (gameplay_object_ids_per_tile[gameplay_object_ids_per_tile_index] != current_gameplay_object_id); ++i)
-      {
-        ++gameplay_object_ids_per_tile_index;
-      }
+      // find open tile_bucket for current_tile_index
+      for(bucket_offset=0; (bucket_offset < MAX_COLLISIONS_PER_TILE)
+                        && (tile_buckets[current_tile_bucket_index] != -1)
+                        && (tile_buckets[current_tile_bucket_index] != current_gameplay_object_id); ++bucket_offset) {};
 
-      gameplay_object_ids_per_tile[gameplay_object_ids_per_tile_index] = current_gameplay_object_id;
+
+      current_tile_bucket_index += bucket_offset;
+      tile_buckets[current_tile_bucket_index] = current_gameplay_object_id;
     }
   }
 
   #ifdef _DEBUG
-    inline void print_gameplay_object_ids_per_tile()
+    inline void print_tile_buckets()
     {
       std::cout << "\n";
-      for(int i=0; i < MAX_COLLISIONS_PER_TILE * TILE_MAP_WIDTH * TILE_MAP_HEIGHT; i+=9)
+      for(int i=0; i < MAX_COLLISIONS_PER_TILE * TILE_MAP_WIDTH * TILE_MAP_HEIGHT; i+= MAX_COLLISIONS_PER_TILE)
       {
-        std::cout << "Tile index: " << i/9 << std::endl;
+        std::cout << "Tile index: " << i/MAX_COLLISIONS_PER_TILE  << std::endl;
 
         for(int collision_index=0; collision_index < MAX_COLLISIONS_PER_TILE; ++collision_index)
         {
-          int entity_id = gameplay_object_ids_per_tile[i + collision_index];
+          int entity_id = tile_buckets[i + collision_index];
           if (entity_id == -1) continue;
           std::cout << "\tid: " << entity_id << std::endl;
         }
@@ -73,7 +84,7 @@ namespace collision_detection
     }
   #endif
 
-} // collision_detection
+} // game_entity_ids_per_tile
 
 
 
@@ -121,7 +132,7 @@ int main()
   game_entities->velocities[4] = sf::Vector2f(-25.0f,-100.0f);
 
   // initialize entity positions to (0,0) origin
-  for(int i=0; i < game_entities->vertice_count; i+=4)
+  for(int i=0; i < game_entities->vertex_count; i+=4)
   {
     game_entities->vertex_buffer[i].position   = sf::Vector2f(-test_map_background->tile_size_x, -test_map_background->tile_size_y * 2);
     game_entities->vertex_buffer[i+1].position = sf::Vector2f(2 *test_map_background->tile_size_x, -test_map_background->tile_size_y * 2);
@@ -130,7 +141,7 @@ int main()
   }
 
   // initialize default collision rectangles
-  for(int i=0; i < game_entities->vertice_count; i+=4)
+  for(int i=0; i < game_entities->vertex_count; i+=4)
   {
     // the tile_size - 0.01f is to currently handle overlapping tile vertices
     game_entities->collision_vertices[i]   = sf::Vector2f(0.0f, 0.0f);
@@ -218,15 +229,14 @@ int main()
 
     game_entities->update_positions_and_tex_coords(elapsed_frame_time_seconds);
 
-    collision_detection::update_gameplay_object_ids_per_tile(*test_map_background, *game_entities);
-
+    game_entity_ids_per_tile::update(*test_map_background, *game_entities);
 
 
     /* draw */
     window.clear(sf::Color::Black);
 
-    window.draw(test_map_background->vertex_buffer, test_map_background->vertice_count, sf::Quads, &test_map_background->tiles_texture);
-    window.draw(game_entities->vertex_buffer, game_entities->vertice_count, sf::Quads, &game_entities->sprite_sheet_texture);
+    window.draw(test_map_background->vertex_buffer, test_map_background->vertex_count, sf::Quads, &test_map_background->tiles_texture);
+    window.draw(game_entities->vertex_buffer, game_entities->vertex_count, sf::Quads, &game_entities->sprite_sheet_texture);
 
     #ifdef _DEBUG
       if(show_debug_data)

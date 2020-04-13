@@ -2,13 +2,6 @@
 
 #include <SFML/Graphics.hpp>
 
-namespace
-{
-  sf::Vector2f current_velocity;
-  float current_sprite_sheet_y_position;
-  float current_sprite_sheet_x_position;
-}
-
 enum class gameplay_entities_type_and_sprite_sheet_row_index : int
 {
   NONE  = 0,
@@ -24,7 +17,7 @@ struct gameplay_entities
   sf::Vector2f collision_vertices[p_max_size * 4];    // 4 vertices per entity [top-left, top-right, bottom-right, bottom-left]
   const int sprite_sheet_side_length;                 // the pixel length and width of each entity animation frame
   const int max_size = p_max_size;
-  const int vertice_count = p_max_size * 4;           // 4 vertices per entity
+  const int vertex_count = p_max_size * 4;            // 4 vertices per entity
 
   gameplay_entities_type_and_sprite_sheet_row_index types[p_max_size] = {gameplay_entities_type_and_sprite_sheet_row_index::NONE}; // type of gameplay entity that's also used to specify row in sprite_sheet
   int animation_indexes[p_max_size] = {0};                                                                                         // current frame for animation
@@ -179,5 +172,9 @@ struct gameplay_entities
     }
   #endif
 
+    private:
+      sf::Vector2f current_velocity;
+      float current_sprite_sheet_y_position;
+      float current_sprite_sheet_x_position;
 
 };
