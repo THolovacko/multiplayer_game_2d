@@ -42,7 +42,7 @@ namespace game_entity_ids_per_tile
       y_index = static_cast<int>(p_game_entities.collision_vertices[current_collision_vertex].y / p_tile_map.tile_size_y);
       x_index = static_cast<int>(p_game_entities.collision_vertices[current_collision_vertex].x / p_tile_map.tile_size_x);
 
-      // check if vertice is visible
+      // check if vertex is visible
       if(   (y_index < 0) 
          || (y_index > (p_tile_map.height - 1)) 
          || (x_index < 0)
