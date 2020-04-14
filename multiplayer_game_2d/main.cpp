@@ -7,6 +7,8 @@
 #include "gameplay_entities.h"
 
 
+#pragma warning(disable : 26812)
+
 
 #define TILE_MAP_WIDTH              16  // in pixels
 #define TILE_MAP_HEIGHT             9   // in pixels
@@ -17,7 +19,7 @@
 
 namespace game_entity_ids_per_tile
 {
-  /* @remember: all collision rectangles at max are tile-width    */
+  /* @remember: all collision rectangles at max are tile-width */
 
   int current_tile_index;
   int current_tile_bucket_index;

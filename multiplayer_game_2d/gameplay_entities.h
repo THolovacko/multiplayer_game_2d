@@ -91,9 +91,9 @@ struct gameplay_entities
       int debug_collision_line_vertex_count = max_size * 8; // 4 lines per entity and 2 vertices per line so 8 vertices per entity
       sf::VertexArray debug_collision_line_vertices(sf::Lines, debug_collision_line_vertex_count);
 
-      for(int i=0,entity_vertex=0; i < debug_collision_line_vertex_count; i+=8,entity_vertex+=4)
+      for(size_t i=0,entity_vertex=0; i < debug_collision_line_vertex_count; i+=8,entity_vertex+=4)
       {
-        int current_entity_id = entity_vertex / 4;
+        size_t current_entity_id = entity_vertex / 4;
         if(is_garbage_flags[current_entity_id] == true) continue;
 
         debug_collision_line_vertices[i].position   = this->collision_vertices[entity_vertex];
@@ -125,9 +125,9 @@ struct gameplay_entities
       int debug_line_vertex_count = max_size * 8; // 4 lines per entity and 2 vertices per line so 8 vertices per entity
       sf::VertexArray debug_line_vertices(sf::Lines, debug_line_vertex_count);
 
-      for(int i=0,entity_vertex=0; i < debug_line_vertex_count; i+=8,entity_vertex+=4)
+      for(size_t i=0,entity_vertex=0; i < debug_line_vertex_count; i+=8,entity_vertex+=4)
       {
-        int current_entity_id = entity_vertex / 4;
+        size_t current_entity_id = entity_vertex / 4;
         if(is_garbage_flags[current_entity_id] == true) continue;
 
         debug_line_vertices[i].position   = this->vertex_buffer[entity_vertex].position;
