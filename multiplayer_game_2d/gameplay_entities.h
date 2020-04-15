@@ -86,10 +86,13 @@ struct gameplay_entities
   #ifdef _DEBUG
     #include <string.h>
 
-    sf::VertexArray generate_debug_collision_line_vertices(const sf::Color color) const
+    sf::VertexArray* generate_debug_collision_line_vertices(const sf::Color color) const
     {
-      int debug_collision_line_vertex_count = max_size * 8; // 4 lines per entity and 2 vertices per line so 8 vertices per entity
-      sf::VertexArray debug_collision_line_vertices(sf::Lines, debug_collision_line_vertex_count);
+      static int debug_collision_line_vertex_count = p_max_size * 8; // 4 lines per entity and 2 vertices per line so 8 vertices per entity
+      static sf::VertexArray debug_collision_line_vertices(sf::Lines, debug_collision_line_vertex_count);
+
+      debug_collision_line_vertices.clear();
+      debug_collision_line_vertices.resize(debug_collision_line_vertex_count);
 
       for(size_t i=0,entity_vertex=0; i < debug_collision_line_vertex_count; i+=8,entity_vertex+=4)
       {
@@ -117,13 +120,16 @@ struct gameplay_entities
         debug_collision_line_vertices[i+7].color    = color;
       }
 
-      return debug_collision_line_vertices;
+      return &debug_collision_line_vertices;
     }
 
-    sf::VertexArray generate_debug_line_vertices(const sf::Color color) const
+    sf::VertexArray* generate_debug_line_vertices(const sf::Color color) const
     {
-      int debug_line_vertex_count = max_size * 8; // 4 lines per entity and 2 vertices per line so 8 vertices per entity
-      sf::VertexArray debug_line_vertices(sf::Lines, debug_line_vertex_count);
+      static int debug_line_vertex_count = max_size * 8; // 4 lines per entity and 2 vertices per line so 8 vertices per entity
+      static sf::VertexArray debug_line_vertices(sf::Lines, debug_line_vertex_count);
+
+      debug_line_vertices.clear();
+      debug_line_vertices.resize(debug_line_vertex_count);
 
       for(size_t i=0,entity_vertex=0; i < debug_line_vertex_count; i+=8,entity_vertex+=4)
       {
@@ -151,11 +157,13 @@ struct gameplay_entities
         debug_line_vertices[i+7].color    = color;
       }
 
-      return debug_line_vertices;
+      return &debug_line_vertices;
     }
 
     void generate_debug_index_text(sf::Text (&debug_entity_index_text)[p_max_size], const sf::Font& font, const sf::Color color) const
     {
+      for(auto& text : debug_entity_index_text) text.setString("");
+
       for(int entity_index=0; entity_index < p_max_size; ++entity_index)
       {
         if ( this->is_garbage_flags[entity_index] ) continue;

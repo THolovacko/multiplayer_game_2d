@@ -243,15 +243,15 @@ int main()
     #ifdef _DEBUG
       if(show_debug_data)
       {
-        window.draw(test_map_background->generate_debug_line_vertices(sf::Color::Blue));
-        window.draw(game_entities->generate_debug_collision_line_vertices(sf::Color::Red));
-        //window.draw(game_entities->generate_debug_line_vertices(sf::Color::Yellow));
+        window.draw( *(test_map_background->generate_debug_line_vertices(sf::Color::Blue))    );
+        window.draw( *(game_entities->generate_debug_collision_line_vertices(sf::Color::Red)) );
+        //window.draw( *(game_entities->generate_debug_line_vertices(sf::Color::Yellow))        );
 
-        sf::Text tile_index_text[TILE_MAP_WIDTH * TILE_MAP_HEIGHT];
+        static sf::Text tile_index_text[TILE_MAP_WIDTH * TILE_MAP_HEIGHT];
         test_map_background->generate_debug_tile_index_text(tile_index_text, mandalore_font, sf::Color::Blue);
         for(auto& text : tile_index_text) window.draw(text);
 
-        sf::Text game_entity_index_text[TILE_MAP_WIDTH * TILE_MAP_HEIGHT];
+        static sf::Text game_entity_index_text[TILE_MAP_WIDTH * TILE_MAP_HEIGHT];
         game_entities->generate_debug_index_text(game_entity_index_text, mandalore_font, sf::Color::Yellow);
         for(auto& text : game_entity_index_text) window.draw(text);
       }
