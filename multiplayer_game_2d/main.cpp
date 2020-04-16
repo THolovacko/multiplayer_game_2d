@@ -27,7 +27,7 @@ namespace game_entity_ids_per_tile
   int current_collision_vertex;
   int y_index;
   int x_index;
-  int bucket_offset;
+  int current_max_tile_bucket_index_limit;
 
   int tile_buckets[MAX_COLLISIONS_PER_TILE * TILE_MAP_WIDTH * TILE_MAP_HEIGHT]; // MAX_COLLISIONS_PER_TILE game_entity_ids per tile
 
@@ -54,15 +54,14 @@ namespace game_entity_ids_per_tile
 
       current_tile_index = (y_index * p_tile_map.width) + x_index;
       current_tile_bucket_index = current_tile_index * MAX_COLLISIONS_PER_TILE;
-
+      current_max_tile_bucket_index_limit = current_tile_bucket_index + MAX_COLLISIONS_PER_TILE;
 
       // find open tile_bucket for current_tile_index
-      for(bucket_offset=0; (bucket_offset < MAX_COLLISIONS_PER_TILE)
+      for(; ( current_tile_bucket_index < current_max_tile_bucket_index_limit )
                         && (tile_buckets[current_tile_bucket_index] != -1)
-                        && (tile_buckets[current_tile_bucket_index] != current_gameplay_object_id); ++bucket_offset) {};
+                        && (tile_buckets[current_tile_bucket_index] != current_gameplay_object_id); ++current_tile_bucket_index) {};
 
 
-      current_tile_bucket_index += bucket_offset;
       tile_buckets[current_tile_bucket_index] = current_gameplay_object_id;
     }
   }
@@ -233,7 +232,6 @@ int main()
 
     game_entity_ids_per_tile::update(*test_map_background, *game_entities);
 
-
     /* draw */
     window.clear(sf::Color::Black);
 
@@ -261,7 +259,6 @@ int main()
     // draw options if requested
 
     window.display();
-
 
 
     // handle underflow
