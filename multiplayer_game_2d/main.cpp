@@ -111,6 +111,7 @@ int main()
   
   tile_map<TILE_MAP_WIDTH,TILE_MAP_HEIGHT>* test_tile_map = new tile_map<TILE_MAP_WIDTH,TILE_MAP_HEIGHT>("Assets/Images/test_tile_map.png", (float) window_size.x, (float) window_size.y, TILE_MAP_TEXTURE_SIDE_SIZE);
   gameplay_entities<TILE_MAP_WIDTH * TILE_MAP_HEIGHT>* all_gameplay_entities = new gameplay_entities<TILE_MAP_WIDTH * TILE_MAP_HEIGHT>("Assets/Images/gameplay_entities.png", TILE_MAP_TEXTURE_SIDE_SIZE * 3); // need to be able to handle a single gameplay entity per tile
+  game_entity_ids_per_tile::update(*test_tile_map, *all_gameplay_entities); // initialize
 
   
   all_gameplay_entities->is_garbage_flags[0] = false;
@@ -228,8 +229,21 @@ int main()
     test_tile_map->bitmap[143] = 2;
     test_tile_map->update_tex_coords_from_bitmap();
 
-    all_gameplay_entities->update_positions_and_tex_coords(elapsed_frame_time_seconds);
+    /*  maybe game_entity_collision:
 
+        find the midpoint between the 2 entities for each x and y and reset both velocties for each entity to the new calculated values
+    */
+
+    // apply velocity?  will need to break up current method update_positions_and_tex_coords
+    // update game_entity_ids_per_tile? (collision sorting)
+    // handle collision and commit overlap gameplay events?
+      //  first, handle map boundaries and walls using tile_map bitmap by teleporting
+      //  second, do collision sorting again (maybe only update buckets as needed)
+      //  then commit overlap gameplay_events
+    // commit other gameplay events? (examples: timed bomb detonating, Q-ability activated)
+    // handle gameplay events?
+    // update textCoords?
+    all_gameplay_entities->update_positions_and_tex_coords(elapsed_frame_time_seconds);
     game_entity_ids_per_tile::update(*test_tile_map, *all_gameplay_entities);
 
     /* draw */

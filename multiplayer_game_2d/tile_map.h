@@ -32,7 +32,7 @@ struct tile_map
     this->vertex_buffer[3].texCoords = sf::Vector2f(0.0f, (float) tile_sheet_side_length);
 
     // assign screen coordinates for each vertex in tiles
-    for(int y=0,vertex=4; y < height; ++y)
+    for(int y=0,vertex=4; y < height  ; ++y)
     for(int x=0         ; x < width   ; ++x, vertex+=4)
     {
       this->vertex_buffer[vertex].position   = sf::Vector2f(x * tile_size_x, y * tile_size_y);
