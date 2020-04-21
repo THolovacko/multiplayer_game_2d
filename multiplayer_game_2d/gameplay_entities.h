@@ -2,7 +2,8 @@
 
 #include <SFML/Graphics.hpp>
 
-enum class gameplay_entities_type_and_sprite_sheet_row_index : int
+
+enum class gameplay_entity_type : int  // these are also the sprite sheet indexes
 {
   NONE  = 0,
   MARIO = 1,
@@ -12,6 +13,9 @@ enum class gameplay_entities_type_and_sprite_sheet_row_index : int
 template<int p_max_size>
 struct gameplay_entities
 {
+  /* @remember: all hitboxes at max are tile-width */
+  /* @remember: velocities should never move an entity more than half a tile per frame */
+
   sf::Vertex vertex_buffer[p_max_size * 4];           // 4 vertices per entity
   sf::Texture sprite_sheet_texture;                   // a sprite sheet where each row is a separate entity and each column is a different frame for an animation (the first row is transparent)
   sf::Vector2f collision_vertices[p_max_size * 4];    // 4 vertices per entity [top-left, top-right, bottom-right, bottom-left]
@@ -19,7 +23,7 @@ struct gameplay_entities
   const int max_size = p_max_size;
   const int vertex_count = p_max_size * 4;            // 4 vertices per entity
 
-  gameplay_entities_type_and_sprite_sheet_row_index types[p_max_size] = {gameplay_entities_type_and_sprite_sheet_row_index::NONE}; // type of gameplay entity that's also used to specify row in sprite_sheet
+  gameplay_entity_type types[p_max_size] = {gameplay_entity_type::NONE}; // type of gameplay entity that's also used to specify row in sprite_sheet
   int animation_indexes[p_max_size] = {0};                                                                                         // current frame for animation
   sf::Vector2f velocities[p_max_size];                                                                                             // how many pixels per second to move in x and y directions
   bool is_garbage_flags[p_max_size];                                                                                               // memory at this index is overwritable when true
@@ -52,25 +56,26 @@ struct gameplay_entities
     }
   }
 
-  void update_positions_and_tex_coords(const float elapsed_frame_time_seconds)
+  void update_positions_by_velocity(const float elapsed_frame_time_seconds)
   {
-    // update positions based on velocity
     for(int entity_index=0,vertex=0; entity_index < max_size; ++entity_index,vertex += 4)
     {
-      current_velocity = velocities[entity_index] * (elapsed_frame_time_seconds * !is_garbage_flags[entity_index]);
+      current_velocity_position_offset = velocities[entity_index] * (elapsed_frame_time_seconds * !is_garbage_flags[entity_index]);
 
-      vertex_buffer[vertex].position   += current_velocity;
-      vertex_buffer[vertex+1].position += current_velocity;
-      vertex_buffer[vertex+2].position += current_velocity;
-      vertex_buffer[vertex+3].position += current_velocity;
+      vertex_buffer[vertex].position   += current_velocity_position_offset;
+      vertex_buffer[vertex+1].position += current_velocity_position_offset;
+      vertex_buffer[vertex+2].position += current_velocity_position_offset;
+      vertex_buffer[vertex+3].position += current_velocity_position_offset;
 
-      collision_vertices[vertex]   += current_velocity;
-      collision_vertices[vertex+1] += current_velocity;
-      collision_vertices[vertex+2] += current_velocity;
-      collision_vertices[vertex+3] += current_velocity;
+      collision_vertices[vertex]   += current_velocity_position_offset;
+      collision_vertices[vertex+1] += current_velocity_position_offset;
+      collision_vertices[vertex+2] += current_velocity_position_offset;
+      collision_vertices[vertex+3] += current_velocity_position_offset;
     }
+  }
 
-    // update tex coords based on type and animation index
+  void update_tex_coords(const float elapsed_frame_time_seconds)  // update tex coords based on type and animation index
+  {
     for(int entity_index=0,vertex=0; entity_index < max_size; ++entity_index,vertex += 4)
     {
       current_sprite_sheet_y_position = (float) (sprite_sheet_texture.getSize().y - sprite_sheet_side_length) - static_cast<int>(types[entity_index]) * sprite_sheet_side_length * !is_garbage_flags[entity_index];
@@ -181,7 +186,7 @@ struct gameplay_entities
   #endif
 
     private:
-      sf::Vector2f current_velocity;
+      sf::Vector2f current_velocity_position_offset;
       float current_sprite_sheet_y_position;
       float current_sprite_sheet_x_position;
 

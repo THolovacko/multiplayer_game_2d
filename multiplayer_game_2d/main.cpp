@@ -17,13 +17,13 @@
 
 
 
-namespace game_entity_ids_per_tile
+namespace gameplay_entity_ids_per_tile
 {
-  /* @remember: all collision rectangles at max are tile-width */
+  /* @remember: all hitboxes at max are tile-width */
 
   int current_tile_index;
   int current_tile_bucket_index;
-  int current_gameplay_object_id;
+  int current_gameplay_entity_id;
   int current_collision_vertex;
   int y_index;
   int x_index;
@@ -38,8 +38,8 @@ namespace game_entity_ids_per_tile
 
     for(current_collision_vertex=0; current_collision_vertex < p_game_entities.vertex_count; ++current_collision_vertex) // vertex_count is same as collision_vertex_count
     {
-      current_gameplay_object_id = current_collision_vertex / 4;
-      if (p_game_entities.is_garbage_flags[current_gameplay_object_id]) continue;
+      current_gameplay_entity_id = current_collision_vertex / 4;
+      if (p_game_entities.is_garbage_flags[current_gameplay_entity_id]) continue;
 
       y_index = static_cast<int>(p_game_entities.collision_vertices[current_collision_vertex].y / p_tile_map.tile_size_y);
       x_index = static_cast<int>(p_game_entities.collision_vertices[current_collision_vertex].x / p_tile_map.tile_size_x);
@@ -48,9 +48,8 @@ namespace game_entity_ids_per_tile
       if(   (y_index < 0) 
          || (y_index > (p_tile_map.height - 1)) 
          || (x_index < 0)
-         || (x_index > (p_tile_map.width - 1))
+         || (x_index > (p_tile_map.width  - 1))
         ) continue;
-
 
       current_tile_index = (y_index * p_tile_map.width) + x_index;
       current_tile_bucket_index = current_tile_index * MAX_COLLISIONS_PER_TILE;
@@ -59,10 +58,9 @@ namespace game_entity_ids_per_tile
       // find open tile_bucket for current_tile_index
       for(; ( current_tile_bucket_index < current_max_tile_bucket_index_limit )
                         && (tile_buckets[current_tile_bucket_index] != -1)
-                        && (tile_buckets[current_tile_bucket_index] != current_gameplay_object_id); ++current_tile_bucket_index) {};
+                        && (tile_buckets[current_tile_bucket_index] != current_gameplay_entity_id); ++current_tile_bucket_index) {};
 
-
-      tile_buckets[current_tile_bucket_index] = current_gameplay_object_id;
+      tile_buckets[current_tile_bucket_index] = current_gameplay_entity_id;
     }
   }
 
@@ -85,7 +83,7 @@ namespace game_entity_ids_per_tile
     }
   #endif
 
-} // game_entity_ids_per_tile
+} // gameplay_entity_ids_per_tile
 
 
 
@@ -111,7 +109,7 @@ int main()
   
   tile_map<TILE_MAP_WIDTH,TILE_MAP_HEIGHT>* test_tile_map = new tile_map<TILE_MAP_WIDTH,TILE_MAP_HEIGHT>("Assets/Images/test_tile_map.png", (float) window_size.x, (float) window_size.y, TILE_MAP_TEXTURE_SIDE_SIZE);
   gameplay_entities<TILE_MAP_WIDTH * TILE_MAP_HEIGHT>* all_gameplay_entities = new gameplay_entities<TILE_MAP_WIDTH * TILE_MAP_HEIGHT>("Assets/Images/gameplay_entities.png", TILE_MAP_TEXTURE_SIDE_SIZE * 3); // need to be able to handle a single gameplay entity per tile
-  game_entity_ids_per_tile::update(*test_tile_map, *all_gameplay_entities); // initialize
+  gameplay_entity_ids_per_tile::update(*test_tile_map, *all_gameplay_entities); // initialize
 
   
   all_gameplay_entities->is_garbage_flags[0] = false;
@@ -119,11 +117,11 @@ int main()
   all_gameplay_entities->is_garbage_flags[2] = false;
   all_gameplay_entities->is_garbage_flags[3] = false;
   all_gameplay_entities->is_garbage_flags[4] = false;
-  all_gameplay_entities->types[0] = gameplay_entities_type_and_sprite_sheet_row_index::MARIO;
-  all_gameplay_entities->types[1] = gameplay_entities_type_and_sprite_sheet_row_index::BOMB;
-  all_gameplay_entities->types[2] = gameplay_entities_type_and_sprite_sheet_row_index::BOMB;
-  all_gameplay_entities->types[3] = gameplay_entities_type_and_sprite_sheet_row_index::BOMB;
-  all_gameplay_entities->types[4] = gameplay_entities_type_and_sprite_sheet_row_index::BOMB;
+  all_gameplay_entities->types[0] = gameplay_entity_type::MARIO;
+  all_gameplay_entities->types[1] = gameplay_entity_type::BOMB;
+  all_gameplay_entities->types[2] = gameplay_entity_type::BOMB;
+  all_gameplay_entities->types[3] = gameplay_entity_type::BOMB;
+  all_gameplay_entities->types[4] = gameplay_entity_type::BOMB;
   all_gameplay_entities->animation_indexes[0] = 0;
   all_gameplay_entities->animation_indexes[1] = 0;
   all_gameplay_entities->animation_indexes[2] = 0;
@@ -217,34 +215,37 @@ int main()
 
 
     /* calculate gameplay stuff */
-    test_tile_map->bitmap[0] = 0;
-    test_tile_map->bitmap[1] = 1;
-    test_tile_map->bitmap[2] = 2;
-    test_tile_map->bitmap[3] = 3;
-    test_tile_map->bitmap[4] = 3;
-    test_tile_map->bitmap[5] = 2;
-    test_tile_map->bitmap[6] = 1;
-    test_tile_map->bitmap[7] = 0;
-    test_tile_map->bitmap[15] = 2;
-    test_tile_map->bitmap[143] = 2;
+    test_tile_map->bitmap[0] = static_cast<int>(test_tile_map_bitmap_type::NONE);
+    test_tile_map->bitmap[1] = static_cast<int>(test_tile_map_bitmap_type::BLAH);
+    test_tile_map->bitmap[2] = static_cast<int>(test_tile_map_bitmap_type::TEST);
+    test_tile_map->bitmap[3] = static_cast<int>(test_tile_map_bitmap_type::TEMP);
+    test_tile_map->bitmap[4] = static_cast<int>(test_tile_map_bitmap_type::TEMP);
+    test_tile_map->bitmap[5] = static_cast<int>(test_tile_map_bitmap_type::TEST);
+    test_tile_map->bitmap[6] = static_cast<int>(test_tile_map_bitmap_type::BLAH);
+    test_tile_map->bitmap[7] = static_cast<int>(test_tile_map_bitmap_type::NONE);
+    test_tile_map->bitmap[15] = static_cast<int>(test_tile_map_bitmap_type::BLAH);
+    test_tile_map->bitmap[26] = static_cast<int>(test_tile_map_bitmap_type::WALL);
+    test_tile_map->bitmap[45] = static_cast<int>(test_tile_map_bitmap_type::WALL);
+    test_tile_map->bitmap[58] = static_cast<int>(test_tile_map_bitmap_type::WALL);
+    test_tile_map->bitmap[83] = static_cast<int>(test_tile_map_bitmap_type::WALL);
+    test_tile_map->bitmap[143] = static_cast<int>(test_tile_map_bitmap_type::BLAH);
     test_tile_map->update_tex_coords_from_bitmap();
 
-    /*  maybe game_entity_collision:
 
-        find the midpoint between the 2 entities for each x and y and reset both velocties for each entity to the new calculated values
-    */
-
-    // apply velocity?  will need to break up current method update_positions_and_tex_coords
-    // update game_entity_ids_per_tile? (collision sorting)
-    // handle collision and commit overlap gameplay events?
+    all_gameplay_entities->update_positions_by_velocity(elapsed_frame_time_seconds);
+    gameplay_entity_ids_per_tile::update(*test_tile_map, *all_gameplay_entities);
       //  first, handle map boundaries and walls using tile_map bitmap by teleporting
-      //  second, do collision sorting again (maybe only update buckets as needed)
-      //  then commit overlap gameplay_events
+
+      //  second, do collision sorting again (maybe only update buckets as needed) remember: probably still overlapping same tiles so data has barely changed in tile hash
+      //  then handle gameplay_entity overlaps: set velocities, correct overlapping, and commit overlap gameplay_events (game_entities)
+          //find the midpoint between the 2 entities for each x and y and reset both velocties for each entity to the new calculated values
+      //  then commit tile_map trigger events ex) powerups, hearts, etc...
+
     // commit other gameplay events? (examples: timed bomb detonating, Q-ability activated)
-    // handle gameplay events?
+    // process gameplay events?
+    // update bitmap?
     // update textCoords?
-    all_gameplay_entities->update_positions_and_tex_coords(elapsed_frame_time_seconds);
-    game_entity_ids_per_tile::update(*test_tile_map, *all_gameplay_entities);
+    all_gameplay_entities->update_tex_coords(elapsed_frame_time_seconds);
 
     /* draw */
     window.clear(sf::Color::Black);

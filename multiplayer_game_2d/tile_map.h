@@ -3,6 +3,15 @@
 #include <SFML/Graphics.hpp>
 
 
+enum class test_tile_map_bitmap_type : int // these are also the sprite sheet indexes
+{
+  NONE = 0,
+  BLAH = 1,
+  TEST = 2,
+  TEMP = 3,
+  WALL = 4
+};
+
 template<int p_width, int p_height>
 struct tile_map
 {
