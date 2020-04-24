@@ -88,6 +88,21 @@ struct gameplay_entities
     }
   }
 
+  void update_position_by_offset(const int gameplay_entity_id, const sf::Vector2f& offset)
+  {
+    int vertex = gameplay_entity_id * 4;
+
+    vertex_buffer[vertex].position   += offset;
+    vertex_buffer[vertex+1].position += offset;
+    vertex_buffer[vertex+2].position += offset;
+    vertex_buffer[vertex+3].position += offset;
+
+    collision_vertices[vertex]   += offset;
+    collision_vertices[vertex+1] += offset;
+    collision_vertices[vertex+2] += offset;
+    collision_vertices[vertex+3] += offset;
+  }
+
   #ifdef _DEBUG
     #include <string.h>
 

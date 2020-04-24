@@ -3,6 +3,7 @@
 #include <iostream>
 #include <string.h>
 #include <windows.h>
+#include <bitset>
 #include "tile_map.h"
 #include "gameplay_entities.h"
 
@@ -10,10 +11,11 @@
 #pragma warning(disable : 26812)
 
 
-#define TILE_MAP_WIDTH              16  // in pixels
-#define TILE_MAP_HEIGHT             9   // in pixels
-#define TILE_MAP_TEXTURE_SIDE_SIZE  64  // in pixels
-#define MAX_COLLISIONS_PER_TILE     9   // potential game objects (collisions) in an single tile
+#define TILE_MAP_WIDTH              16                                  // in pixels
+#define TILE_MAP_HEIGHT             9                                   // in pixels
+#define MAX_GAMEPLAY_ENTITIES       (TILE_MAP_WIDTH * TILE_MAP_HEIGHT)
+#define TILE_MAP_TEXTURE_SIDE_SIZE  64                                  // in pixels
+#define MAX_COLLISIONS_PER_TILE     9                                   // potential game objects (collisions) in an single tile
 
 
 
@@ -29,12 +31,14 @@ namespace gameplay_entity_ids_per_tile
   int x_index;
   int current_max_tile_bucket_index_limit;
 
-  int tile_buckets[MAX_COLLISIONS_PER_TILE * TILE_MAP_WIDTH * TILE_MAP_HEIGHT]; // MAX_COLLISIONS_PER_TILE game_entity_ids per tile
+  int tile_buckets[MAX_COLLISIONS_PER_TILE * MAX_GAMEPLAY_ENTITIES];
+  std::bitset<MAX_GAMEPLAY_ENTITIES> off_map_bitfield;  // gameplay entity is partially or fully off the tile map
 
 
-  inline void update(const tile_map<TILE_MAP_WIDTH,TILE_MAP_HEIGHT>& p_tile_map, const gameplay_entities<TILE_MAP_WIDTH * TILE_MAP_HEIGHT>& p_game_entities)
+  inline void update(const tile_map<TILE_MAP_WIDTH,TILE_MAP_HEIGHT>& p_tile_map, const gameplay_entities<MAX_GAMEPLAY_ENTITIES>& p_game_entities)
   {
     memset(tile_buckets, -1, sizeof(tile_buckets));
+    off_map_bitfield.reset();
 
     for(current_collision_vertex=0; current_collision_vertex < p_game_entities.vertex_count; ++current_collision_vertex) // vertex_count is same as collision_vertex_count
     {
@@ -44,12 +48,16 @@ namespace gameplay_entity_ids_per_tile
       y_index = static_cast<int>(p_game_entities.collision_vertices[current_collision_vertex].y / p_tile_map.tile_size_y);
       x_index = static_cast<int>(p_game_entities.collision_vertices[current_collision_vertex].x / p_tile_map.tile_size_x);
 
-      // check if vertex is visible
+      // check if vertex is not visible
       if(   (y_index < 0) 
          || (y_index > (p_tile_map.height - 1)) 
          || (x_index < 0)
          || (x_index > (p_tile_map.width  - 1))
-        ) continue;
+        )
+      {
+        off_map_bitfield[current_gameplay_entity_id] = true;
+        continue;
+      }
 
       current_tile_index = (y_index * p_tile_map.width) + x_index;
       current_tile_bucket_index = current_tile_index * MAX_COLLISIONS_PER_TILE;
@@ -68,7 +76,7 @@ namespace gameplay_entity_ids_per_tile
     inline void print_tile_buckets()
     {
       std::cout << "\n";
-      for(int i=0; i < MAX_COLLISIONS_PER_TILE * TILE_MAP_WIDTH * TILE_MAP_HEIGHT; i+= MAX_COLLISIONS_PER_TILE)
+      for(int i=0; i < MAX_COLLISIONS_PER_TILE * MAX_GAMEPLAY_ENTITIES; i+= MAX_COLLISIONS_PER_TILE)
       {
         std::cout << "Tile index: " << i/MAX_COLLISIONS_PER_TILE  << std::endl;
 
@@ -108,15 +116,17 @@ int main()
   tingling.setBuffer(tingling_sound_buffer);
   
   tile_map<TILE_MAP_WIDTH,TILE_MAP_HEIGHT>* test_tile_map = new tile_map<TILE_MAP_WIDTH,TILE_MAP_HEIGHT>("Assets/Images/test_tile_map.png", (float) window_size.x, (float) window_size.y, TILE_MAP_TEXTURE_SIDE_SIZE);
-  gameplay_entities<TILE_MAP_WIDTH * TILE_MAP_HEIGHT>* all_gameplay_entities = new gameplay_entities<TILE_MAP_WIDTH * TILE_MAP_HEIGHT>("Assets/Images/gameplay_entities.png", TILE_MAP_TEXTURE_SIDE_SIZE * 3); // need to be able to handle a single gameplay entity per tile
+  gameplay_entities<MAX_GAMEPLAY_ENTITIES>* all_gameplay_entities = new gameplay_entities<MAX_GAMEPLAY_ENTITIES>("Assets/Images/gameplay_entities.png", TILE_MAP_TEXTURE_SIDE_SIZE * 3); // need to be able to handle a single gameplay entity per tile
   gameplay_entity_ids_per_tile::update(*test_tile_map, *all_gameplay_entities); // initialize
 
   
   all_gameplay_entities->is_garbage_flags[0] = false;
+  /*
   all_gameplay_entities->is_garbage_flags[1] = false;
   all_gameplay_entities->is_garbage_flags[2] = false;
   all_gameplay_entities->is_garbage_flags[3] = false;
   all_gameplay_entities->is_garbage_flags[4] = false;
+  */
   all_gameplay_entities->types[0] = gameplay_entity_type::MARIO;
   all_gameplay_entities->types[1] = gameplay_entity_type::BOMB;
   all_gameplay_entities->types[2] = gameplay_entity_type::BOMB;
@@ -169,7 +179,7 @@ int main()
     elapsed_frame_time_seconds      = elapsed_frame_time.asSeconds();
 
     #ifdef _DEBUG
-      if (elapsed_frame_time_milliseconds > 16)
+      if ( (elapsed_frame_time_milliseconds > 16) && show_debug_data)
         std::cout << "elapsed_frame_time_milliseconds: " << elapsed_frame_time_milliseconds << std::endl;
     #endif
 
@@ -234,12 +244,51 @@ int main()
 
     all_gameplay_entities->update_positions_by_velocity(elapsed_frame_time_seconds);
     gameplay_entity_ids_per_tile::update(*test_tile_map, *all_gameplay_entities);
-      //  first, handle map boundaries and walls using tile_map bitmap by teleporting
+    
+    for(int gameplay_entity_id=0; gameplay_entity_id < gameplay_entity_ids_per_tile::off_map_bitfield.size(); ++gameplay_entity_id)
+    {
+      if(gameplay_entity_ids_per_tile::off_map_bitfield[gameplay_entity_id]) std::cout << "id: " << gameplay_entity_id << std::endl;
+    }
+    
+    //  first, handle map boundaries and walls using tile_map bitmap by teleporting
 
-      //  second, do collision sorting again (maybe only update buckets as needed) remember: probably still overlapping same tiles so data has barely changed in tile hash
-      //  then handle gameplay_entity overlaps: set velocities, correct overlapping, and commit overlap gameplay_events (game_entities)
-          //find the midpoint between the 2 entities for each x and y and reset both velocties for each entity to the new calculated values
-      //  then commit tile_map trigger events ex) powerups, hearts, etc...
+    // correct gameplay entities that are off the map
+    if(gameplay_entity_ids_per_tile::off_map_bitfield.any())
+    {
+      float offset_x;
+      float offset_y;
+      bool  need_to_correct_x;
+      bool  need_to_correct_y;
+      int   vertex_index;
+
+      for(int gameplay_entity_id=0; gameplay_entity_id < gameplay_entity_ids_per_tile::off_map_bitfield.size(); ++gameplay_entity_id)
+      {
+        if(gameplay_entity_ids_per_tile::off_map_bitfield[gameplay_entity_id] == false) continue;
+
+        vertex_index = gameplay_entity_id * 4;
+
+        // does top left vertice have negative x or y?
+        offset_x = all_gameplay_entities->collision_vertices[vertex_index].x;
+        offset_y = all_gameplay_entities->collision_vertices[vertex_index].y;
+        need_to_correct_x = offset_x < 0.0f;
+        need_to_correct_y = offset_y < 0.0f;
+
+        //all_gameplay_entities->update_position_by_offset(gameplay_entity_id, sf::Vector2f( -1.0f * offset_x * static_cast<float>(need_to_correct_x) , -1.0f * offset_y * static_cast<float>(need_to_correct_y) ));
+
+        // does bottom right vertice have too big x or y?
+        offset_x = all_gameplay_entities->collision_vertices[vertex_index + 2].x - test_tile_map->width;
+        offset_y = all_gameplay_entities->collision_vertices[vertex_index + 2].y - test_tile_map->height;
+        need_to_correct_x = offset_x > 0.0f;
+        need_to_correct_y = offset_y > 0.0f;
+
+        //all_gameplay_entities->update_position_by_offset(gameplay_entity_id, sf::Vector2f( -1.0f * offset_x * static_cast<float>(need_to_correct_x) , -1.0f * offset_y * static_cast<float>(need_to_correct_y) ));
+      }
+    }
+
+    //  second, do collision sorting again (maybe only update buckets as needed) remember: probably still overlapping same tiles so data has barely changed in tile hash
+    //  then handle gameplay_entity overlaps: set velocities, correct overlapping, and commit overlap gameplay_events (game_entities)
+        // find the midpoint between the 2 entities for each x and y and reset both velocties for each entity to the new calculated values
+    //  then commit tile_map trigger events ex) powerups, hearts, etc...
 
     // commit other gameplay events? (examples: timed bomb detonating, Q-ability activated)
     // process gameplay events?
@@ -264,7 +313,7 @@ int main()
         test_tile_map->generate_debug_tile_index_text(tile_index_text, mandalore_font, sf::Color::Blue);
         for(auto& text : tile_index_text) window.draw(text);
 
-        static sf::Text game_entity_index_text[TILE_MAP_WIDTH * TILE_MAP_HEIGHT];
+        static sf::Text game_entity_index_text[MAX_GAMEPLAY_ENTITIES];
         all_gameplay_entities->generate_debug_index_text(game_entity_index_text, mandalore_font, sf::Color::Yellow);
         for(auto& text : game_entity_index_text) window.draw(text);
       }
