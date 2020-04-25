@@ -45,19 +45,19 @@ namespace gameplay_entity_ids_per_tile
       current_gameplay_entity_id = current_collision_vertex / 4;
       if (p_game_entities.is_garbage_flags[current_gameplay_entity_id]) continue;
 
-      y_index = static_cast<int>(p_game_entities.collision_vertices[current_collision_vertex].y / p_tile_map.tile_size_y);
-      x_index = static_cast<int>(p_game_entities.collision_vertices[current_collision_vertex].x / p_tile_map.tile_size_x);
-
       // check if vertex is not visible
-      if(   (y_index < 0) 
-         || (y_index > (p_tile_map.height - 1)) 
-         || (x_index < 0)
-         || (x_index > (p_tile_map.width  - 1))
+      if(   (p_game_entities.collision_vertices[current_collision_vertex].y < 0) 
+         || (p_game_entities.collision_vertices[current_collision_vertex].y > ( (p_tile_map.height * p_tile_map.tile_size_y) - 1 ))
+         || (p_game_entities.collision_vertices[current_collision_vertex].x < 0)
+         || (p_game_entities.collision_vertices[current_collision_vertex].x > ( (p_tile_map.width  * p_tile_map.tile_size_x) - 1 ))
         )
       {
         off_map_bitfield[current_gameplay_entity_id] = true;
         continue;
       }
+
+      y_index = static_cast<int>(p_game_entities.collision_vertices[current_collision_vertex].y / p_tile_map.tile_size_y);
+      x_index = static_cast<int>(p_game_entities.collision_vertices[current_collision_vertex].x / p_tile_map.tile_size_x);
 
       current_tile_index = (y_index * p_tile_map.width) + x_index;
       current_tile_bucket_index = current_tile_index * MAX_COLLISIONS_PER_TILE;
@@ -121,12 +121,11 @@ int main()
 
   
   all_gameplay_entities->is_garbage_flags[0] = false;
-  /*
   all_gameplay_entities->is_garbage_flags[1] = false;
   all_gameplay_entities->is_garbage_flags[2] = false;
   all_gameplay_entities->is_garbage_flags[3] = false;
   all_gameplay_entities->is_garbage_flags[4] = false;
-  */
+
   all_gameplay_entities->types[0] = gameplay_entity_type::MARIO;
   all_gameplay_entities->types[1] = gameplay_entity_type::BOMB;
   all_gameplay_entities->types[2] = gameplay_entity_type::BOMB;
@@ -137,7 +136,7 @@ int main()
   all_gameplay_entities->animation_indexes[2] = 0;
   all_gameplay_entities->velocities[0] = sf::Vector2f(0.0f  ,0.0f );
   all_gameplay_entities->velocities[1] = sf::Vector2f(128.0f,0.0f  );
-  all_gameplay_entities->velocities[2] = sf::Vector2f(16.0f ,32.0f );
+  all_gameplay_entities->velocities[2] = sf::Vector2f(-16.0f ,-32.0f );
   all_gameplay_entities->velocities[3] = sf::Vector2f(100.0f,83.0f );
   all_gameplay_entities->velocities[4] = sf::Vector2f(25.0f ,100.0f);
 
@@ -244,12 +243,14 @@ int main()
 
     all_gameplay_entities->update_positions_by_velocity(elapsed_frame_time_seconds);
     gameplay_entity_ids_per_tile::update(*test_tile_map, *all_gameplay_entities);
-    
+
+/*
     for(int gameplay_entity_id=0; gameplay_entity_id < gameplay_entity_ids_per_tile::off_map_bitfield.size(); ++gameplay_entity_id)
     {
       if(gameplay_entity_ids_per_tile::off_map_bitfield[gameplay_entity_id]) std::cout << "id: " << gameplay_entity_id << std::endl;
     }
-    
+*/
+
     //  first, handle map boundaries and walls using tile_map bitmap by teleporting
 
     // correct gameplay entities that are off the map
@@ -261,7 +262,7 @@ int main()
       bool  need_to_correct_y;
       int   vertex_index;
 
-      for(int gameplay_entity_id=0; gameplay_entity_id < gameplay_entity_ids_per_tile::off_map_bitfield.size(); ++gameplay_entity_id)
+      for(int gameplay_entity_id=0; gameplay_entity_id < MAX_GAMEPLAY_ENTITIES; ++gameplay_entity_id)
       {
         if(gameplay_entity_ids_per_tile::off_map_bitfield[gameplay_entity_id] == false) continue;
 
@@ -273,15 +274,15 @@ int main()
         need_to_correct_x = offset_x < 0.0f;
         need_to_correct_y = offset_y < 0.0f;
 
-        //all_gameplay_entities->update_position_by_offset(gameplay_entity_id, sf::Vector2f( -1.0f * offset_x * static_cast<float>(need_to_correct_x) , -1.0f * offset_y * static_cast<float>(need_to_correct_y) ));
+        all_gameplay_entities->update_position_by_offset(gameplay_entity_id, sf::Vector2f( -1.0f * offset_x * static_cast<float>(need_to_correct_x) , -1.0f * offset_y * static_cast<float>(need_to_correct_y) ));
 
         // does bottom right vertice have too big x or y?
-        offset_x = all_gameplay_entities->collision_vertices[vertex_index + 2].x - test_tile_map->width;
-        offset_y = all_gameplay_entities->collision_vertices[vertex_index + 2].y - test_tile_map->height;
+        offset_x = all_gameplay_entities->collision_vertices[vertex_index + 2].x - ( (test_tile_map->width  * test_tile_map->tile_size_x) - 1 );
+        offset_y = all_gameplay_entities->collision_vertices[vertex_index + 2].y - ( (test_tile_map->height * test_tile_map->tile_size_y) - 1 );
         need_to_correct_x = offset_x > 0.0f;
         need_to_correct_y = offset_y > 0.0f;
 
-        //all_gameplay_entities->update_position_by_offset(gameplay_entity_id, sf::Vector2f( -1.0f * offset_x * static_cast<float>(need_to_correct_x) , -1.0f * offset_y * static_cast<float>(need_to_correct_y) ));
+        all_gameplay_entities->update_position_by_offset(gameplay_entity_id, sf::Vector2f( -1.0f * offset_x * static_cast<float>(need_to_correct_x) , -1.0f * offset_y * static_cast<float>(need_to_correct_y) ));
       }
     }
 
