@@ -1,4 +1,5 @@
 # initially as much stuff I can think to ignore at the moment @tomh
+*.swp
 *.d
 *.slo
 *.lo
