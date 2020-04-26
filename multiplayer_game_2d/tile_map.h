@@ -98,7 +98,7 @@ struct tile_map
       return &debug_line_vertices;
     }
 
-    void generate_debug_tile_index_text(sf::Text (&debug_tile_index_text)[p_width * p_height], const sf::Font& font, const sf::Color color) const
+    void generate_debug_tile_index_text(sf::Text(&debug_tile_index_text)[p_width * p_height], const sf::Font& font, const sf::Color color) const
     {
       static int character_size = static_cast<int>(tile_size_x) / 4;
 

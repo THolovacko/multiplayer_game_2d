@@ -29,6 +29,8 @@ namespace gameplay_entity_ids_per_tile
   int current_y_index;
   int current_x_index;
   int current_max_tile_bucket_index_limit;
+  int current_potential_bucket_indexes[4];
+  int current_gameplay_entity_id_bucket_index_limit;
 
   int tile_buckets[MAX_COLLISIONS_PER_TILE * MAX_GAMEPLAY_ENTITIES];
   std::bitset<MAX_GAMEPLAY_ENTITIES> off_map_bitfield;  // gameplay entity is partially or fully off the tile map
@@ -78,41 +80,80 @@ namespace gameplay_entity_ids_per_tile
 
   }
 
-  inline void update(const int gameplay_entity_id, const int first_vertex_bucket_index)
+  inline void update(const tile_map<TILE_MAP_WIDTH,TILE_MAP_HEIGHT>& p_tile_map, const gameplay_entities<MAX_GAMEPLAY_ENTITIES>& p_game_entities, int (&p_gameplay_entity_id_to_tile_bucket_index_of_first_vertex)[MAX_GAMEPLAY_ENTITIES], const int target_gameplay_entity_id, const int first_vertex_bucket_index)
   {
-    int potential_second_vertex_bucket_index = first_vertex_bucket_index  + MAX_COLLISIONS_PER_TILE;
-    int potential_third_vertex_bucket_index  = potential_second_vertex_bucket_index + (MAX_COLLISIONS_PER_TILE * TILE_MAP_WIDTH);
-    int potential_fourth_vertex_bucket_index = potential_third_vertex_bucket_index  - MAX_COLLISIONS_PER_TILE;
+    current_potential_bucket_indexes[0] = first_vertex_bucket_index;
+    current_potential_bucket_indexes[1] = first_vertex_bucket_index + MAX_COLLISIONS_PER_TILE;
+    current_potential_bucket_indexes[2] = current_potential_bucket_indexes[1] + (MAX_COLLISIONS_PER_TILE * TILE_MAP_WIDTH);
+    current_potential_bucket_indexes[3] = current_potential_bucket_indexes[2] - MAX_COLLISIONS_PER_TILE;
 
-    int potential_bucket_indexes[4] = {first_vertex_bucket_index, potential_second_vertex_bucket_index, potential_third_vertex_bucket_index, potential_fourth_vertex_bucket_index};
-
-    for(auto& potential_vertex_bucket_index : potential_bucket_indexes)
+    for(auto& potential_vertex_bucket_index : current_potential_bucket_indexes)
     {
-      // remove and re-sort target gameplay_entity_id in bucket index and then the other potential buckets
-      int current_gameplay_entity_id_bucket_index_limit = potential_vertex_bucket_index + MAX_COLLISIONS_PER_TILE;
-
-      // find bucket with target gameplay_entity_id then swap until end of bucket
-      for(int current_bucket_index=potential_vertex_bucket_index; current_bucket_index < current_gameplay_entity_id_bucket_index_limit; ++current_bucket_index)
+      // remove and re-sort target target_gameplay_entity_id in bucket index and then the other potential buckets
+      if (potential_vertex_bucket_index < (MAX_COLLISIONS_PER_TILE * MAX_GAMEPLAY_ENTITIES) )
       {
-        if(tile_buckets[current_bucket_index] == -1) break; // the rest of the bucket is empty
-   
-        if(tile_buckets[current_bucket_index] == gameplay_entity_id)
+        current_gameplay_entity_id_bucket_index_limit = potential_vertex_bucket_index + MAX_COLLISIONS_PER_TILE;
+
+        // find bucket with target target_gameplay_entity_id then swap until end of bucket
+        for(current_tile_bucket_index=potential_vertex_bucket_index; current_tile_bucket_index < current_gameplay_entity_id_bucket_index_limit; ++current_tile_bucket_index)
         {
-          // swap until next bucket index is the current_gameplay_entity_id_bucket_index_limit then set last value in bucket as -1
-          for(int i=current_bucket_index; (i+1) < current_gameplay_entity_id_bucket_index_limit; ++i)
+          if(tile_buckets[current_tile_bucket_index] == -1) break; // the rest of the bucket is empty
+     
+          if(tile_buckets[current_tile_bucket_index] == target_gameplay_entity_id)
           {
-            tile_buckets[i] = tile_buckets[i+1];
+            // swap until next bucket index is the current_gameplay_entity_id_bucket_index_limit then set last value in bucket as -1
+            for(; (current_tile_bucket_index+1) < current_gameplay_entity_id_bucket_index_limit; ++current_tile_bucket_index)
+            {
+              tile_buckets[current_tile_bucket_index] = tile_buckets[current_tile_bucket_index+1];
+            }
+            tile_buckets[current_gameplay_entity_id_bucket_index_limit - 1] = -1; // this is always true because removing an element implies a non full bucket
+            break;
           }
-          tile_buckets[current_gameplay_entity_id_bucket_index_limit - 1] = -1; // this is always true because removing an element implies a non full bucket
-          break;
         }
       }
     }
 
     // update collision hash with new positions for target_gameplay_entity
+    p_gameplay_entity_id_to_tile_bucket_index_of_first_vertex[target_gameplay_entity_id] = -1;
+    off_map_bitfield[target_gameplay_entity_id] = false;
 
+    int collision_vertex_limit = (target_gameplay_entity_id * 4) + 4;
+    for(current_collision_vertex=(target_gameplay_entity_id * 4); current_collision_vertex < collision_vertex_limit; ++current_collision_vertex)
+    {
+      current_gameplay_entity_id = current_collision_vertex / 4;
+      if (p_game_entities.is_garbage_flags[current_gameplay_entity_id]) continue;
 
-  }
+      // check if vertex is not visible
+      if(   (p_game_entities.collision_vertices[current_collision_vertex].y < 0) 
+         || (p_game_entities.collision_vertices[current_collision_vertex].y > ( (p_tile_map.height * p_tile_map.tile_size_y) - 1 ))
+         || (p_game_entities.collision_vertices[current_collision_vertex].x < 0)
+         || (p_game_entities.collision_vertices[current_collision_vertex].x > ( (p_tile_map.width  * p_tile_map.tile_size_x) - 1 ))
+        )
+      {
+        off_map_bitfield[current_gameplay_entity_id] = true;
+        continue;
+      }
+
+      current_y_index = static_cast<int>(p_game_entities.collision_vertices[current_collision_vertex].y / p_tile_map.tile_size_y);
+      current_x_index = static_cast<int>(p_game_entities.collision_vertices[current_collision_vertex].x / p_tile_map.tile_size_x);
+
+      current_tile_index = (current_y_index * p_tile_map.width) + current_x_index;
+      current_tile_bucket_index = current_tile_index * MAX_COLLISIONS_PER_TILE;
+      current_max_tile_bucket_index_limit = current_tile_bucket_index + MAX_COLLISIONS_PER_TILE;
+
+      if( (current_collision_vertex % 4) == 0 ) // checking if top-left vertex
+      {
+        p_gameplay_entity_id_to_tile_bucket_index_of_first_vertex[current_gameplay_entity_id] = current_tile_index;
+      }
+
+      // find open tile_bucket for current_tile_index
+      for(; ( current_tile_bucket_index < current_max_tile_bucket_index_limit )
+                        && (tile_buckets[current_tile_bucket_index] != -1)
+                        && (tile_buckets[current_tile_bucket_index] != current_gameplay_entity_id); ++current_tile_bucket_index) {};
+
+      tile_buckets[current_tile_bucket_index] = current_gameplay_entity_id;
+    }
+  } // update with gameplay_id
 
   #ifdef _DEBUG
     inline void print_tile_buckets()
@@ -146,12 +187,6 @@ int main()
   window.setActive(true);
   sf::Vector2u window_size = window.getSize();
 
-  #ifdef _DEBUG
-    bool show_debug_data = true;
-    sf::Font mandalore_font;
-    mandalore_font.loadFromFile("Assets/Fonts/mandalore.ttf");
-  #endif
-
   sf::SoundBuffer tingling_sound_buffer;
   tingling_sound_buffer.loadFromFile("Assets/Sounds/tingling.wav");
   sf::Sound tingling;
@@ -162,7 +197,15 @@ int main()
   int gameplay_entity_id_to_tile_bucket_index_of_first_vertex[MAX_GAMEPLAY_ENTITIES];
   gameplay_entity_ids_per_tile::update(*test_tile_map, *all_gameplay_entities, gameplay_entity_id_to_tile_bucket_index_of_first_vertex); // initialize
 
+  #ifdef _DEBUG
+    bool show_debug_data = true;
+    sf::Font mandalore_font;
+    mandalore_font.loadFromFile("Assets/Fonts/mandalore.ttf");
 
+    static sf::Text tile_index_text[TILE_MAP_WIDTH * TILE_MAP_HEIGHT];
+    test_tile_map->generate_debug_tile_index_text(tile_index_text, mandalore_font, sf::Color::Blue);
+    static sf::Text game_entity_index_text[MAX_GAMEPLAY_ENTITIES];
+  #endif
   
   all_gameplay_entities->is_garbage_flags[0] = false;
   all_gameplay_entities->is_garbage_flags[1] = false;
@@ -296,12 +339,19 @@ int main()
       bool  need_to_correct_x;
       bool  need_to_correct_y;
       int   vertex_index;
+      int   y_index;
+      int   x_index;
+      int   first_vertex_tile_map_index;
 
       for(int gameplay_entity_id=0; gameplay_entity_id < MAX_GAMEPLAY_ENTITIES; ++gameplay_entity_id)
       {
         if(gameplay_entity_ids_per_tile::off_map_bitfield[gameplay_entity_id] == false) continue;
 
         vertex_index = gameplay_entity_id * 4;
+
+        y_index = static_cast<int>(all_gameplay_entities->collision_vertices[vertex_index].y / test_tile_map->tile_size_y);
+        x_index = static_cast<int>(all_gameplay_entities->collision_vertices[vertex_index].x / test_tile_map->tile_size_x);
+        first_vertex_tile_map_index = (y_index * test_tile_map->width) + x_index;
 
         // does top left vertice have negative x or y?
         offset_x = all_gameplay_entities->collision_vertices[vertex_index].x;
@@ -319,7 +369,7 @@ int main()
 
         all_gameplay_entities->update_position_by_offset(gameplay_entity_id, sf::Vector2f( -1.0f * offset_x * static_cast<float>(need_to_correct_x) , -1.0f * offset_y * static_cast<float>(need_to_correct_y) ));
 
-        // collision sort current entity
+        gameplay_entity_ids_per_tile::update(*test_tile_map, *all_gameplay_entities, gameplay_entity_id_to_tile_bucket_index_of_first_vertex, gameplay_entity_id, first_vertex_tile_map_index * MAX_COLLISIONS_PER_TILE);
       }
     }
 
@@ -349,13 +399,10 @@ int main()
       {
         window.draw( *(test_tile_map->generate_debug_line_vertices(sf::Color::Blue))    );
         window.draw( *(all_gameplay_entities->generate_debug_collision_line_vertices(sf::Color::Red)) );
-        //window.draw( *(all_gameplay_entities->generate_debug_line_vertices(sf::Color::Yellow))        );
+        window.draw( *(all_gameplay_entities->generate_debug_line_vertices(sf::Color::Yellow))        );
 
-        static sf::Text tile_index_text[TILE_MAP_WIDTH * TILE_MAP_HEIGHT];
-        test_tile_map->generate_debug_tile_index_text(tile_index_text, mandalore_font, sf::Color::Blue);
         for(auto& text : tile_index_text) window.draw(text);
 
-        static sf::Text game_entity_index_text[MAX_GAMEPLAY_ENTITIES];
         all_gameplay_entities->generate_debug_index_text(game_entity_index_text, mandalore_font, sf::Color::Yellow);
         for(auto& text : game_entity_index_text) window.draw(text);
       }
