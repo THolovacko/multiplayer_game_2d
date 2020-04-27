@@ -15,6 +15,8 @@ enum class test_tile_map_bitmap_type : int // these are also the sprite sheet in
 template<int p_width, int p_height>
 struct tile_map
 {
+  // @remember: first 4 vertices in tile_map vertex buffer are for background tile
+
   const int width = p_width;
   const int height = p_height;
   const int tile_count = p_width * p_height;

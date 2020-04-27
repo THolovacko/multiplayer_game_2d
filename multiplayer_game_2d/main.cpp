@@ -20,8 +20,6 @@
 
 namespace gameplay_entity_ids_per_tile
 {
-  /* @remember: all hitboxes at max are tile-width */
-
   int current_tile_index;
   int current_tile_bucket_index;
   int current_gameplay_entity_id;
@@ -90,7 +88,7 @@ namespace gameplay_entity_ids_per_tile
     for(auto& potential_vertex_bucket_index : current_potential_bucket_indexes)
     {
       // remove and re-sort target target_gameplay_entity_id in bucket index and then the other potential buckets
-      if (potential_vertex_bucket_index < (MAX_COLLISIONS_PER_TILE * MAX_GAMEPLAY_ENTITIES) )
+      if (potential_vertex_bucket_index <= ( (MAX_COLLISIONS_PER_TILE * p_tile_map.tile_count) - MAX_COLLISIONS_PER_TILE ) )
       {
         current_gameplay_entity_id_bucket_index_limit = potential_vertex_bucket_index + MAX_COLLISIONS_PER_TILE;
 
@@ -374,10 +372,52 @@ int main()
     }
 
     // correct gameplay entities that are overlapping walls
+    {
+      int tile_bucket_index_limit;
+      int gameplay_entity_id;
+      float offset_x = 0.0f;
+      float offset_y = 0.0f;
 
+      for (int tile_index=0; tile_index < test_tile_map->tile_count; ++tile_index)
+      {
+        if(static_cast<test_tile_map_bitmap_type>(test_tile_map->bitmap[tile_index]) != test_tile_map_bitmap_type::WALL) continue;
 
+        tile_bucket_index_limit = (tile_index + 1) * MAX_COLLISIONS_PER_TILE;
+        
+        for(int tile_bucket_index = (tile_index * MAX_COLLISIONS_PER_TILE); tile_bucket_index < tile_bucket_index_limit; ++tile_bucket_index)
+        {
+          gameplay_entity_id = gameplay_entity_ids_per_tile::tile_buckets[tile_bucket_index];
+          if(gameplay_entity_id == -1) break;
+          
+          if(all_gameplay_entities->velocities[gameplay_entity_id].x)
+          {
+            if(all_gameplay_entities->velocities[gameplay_entity_id].x > 0.0f)
+            {
+              offset_x = test_tile_map->vertex_buffer[( (tile_index+1) * 4)].position.x - all_gameplay_entities->collision_vertices[(gameplay_entity_id * 4) + 1].x;
+            }
+            else
+            {
+              offset_x = test_tile_map->vertex_buffer[( (tile_index+1) * 4) + 1].position.x - all_gameplay_entities->collision_vertices[(gameplay_entity_id * 4)].x;
+            }
+          }
 
-    //  second, do collision sorting again (maybe only update buckets as needed) remember: probably still overlapping same tiles so data has barely changed in tile hash
+          if(all_gameplay_entities->velocities[gameplay_entity_id].y)
+          {
+            if(all_gameplay_entities->velocities[gameplay_entity_id].y > 0.0f)
+            {
+              offset_y = test_tile_map->vertex_buffer[( (tile_index+1) * 4)].position.y - all_gameplay_entities->collision_vertices[(gameplay_entity_id * 4) + 2].y;
+            }
+            else
+            {
+              offset_y = test_tile_map->vertex_buffer[( (tile_index+1) * 4) + 2].position.y - all_gameplay_entities->collision_vertices[(gameplay_entity_id * 4)].y;
+            }
+          }
+
+          all_gameplay_entities->update_position_by_offset( gameplay_entity_id, sf::Vector2f(offset_x,offset_y) );
+          gameplay_entity_ids_per_tile::update(*test_tile_map, *all_gameplay_entities, gameplay_entity_id_to_tile_bucket_index_of_first_vertex, gameplay_entity_id, tile_index * MAX_COLLISIONS_PER_TILE);
+        }
+      }
+    }
     //  then handle gameplay_entity overlaps: set velocities, correct overlapping, and commit overlap gameplay_events (game_entities)
         // find the midpoint between the 2 entities for each x and y and reset both velocties for each entity to the new calculated values
     //  then commit tile_map trigger events ex) powerups, hearts, etc...
@@ -397,9 +437,9 @@ int main()
     #ifdef _DEBUG
       if(show_debug_data)
       {
-        window.draw( *(test_tile_map->generate_debug_line_vertices(sf::Color::Blue))    );
+        window.draw( *(test_tile_map->generate_debug_line_vertices(sf::Color::Blue))                  );
         window.draw( *(all_gameplay_entities->generate_debug_collision_line_vertices(sf::Color::Red)) );
-        window.draw( *(all_gameplay_entities->generate_debug_line_vertices(sf::Color::Yellow))        );
+        //window.draw( *(all_gameplay_entities->generate_debug_line_vertices(sf::Color::Yellow))        );
 
         for(auto& text : tile_index_text) window.draw(text);
 
