@@ -20,6 +20,9 @@
 
 namespace gameplay_entity_ids_per_tile
 {
+  // @remember: the second vertex in tile is not considered overlapping the first vertex in the next tile; the same goes for the 3rd vertex of a tile not sharing position of the 4th vertex of the next tile
+  // @remember:     ex) if the position of a gameplay vertex is same position as top-left vertex in tile, it is considered in that tile and not also in the previous tile
+
   int current_tile_index;
   int current_tile_bucket_index;
   int current_gameplay_entity_id;
@@ -221,9 +224,9 @@ int main()
   all_gameplay_entities->animation_indexes[2] = 0;
   all_gameplay_entities->velocities[0] = sf::Vector2f(0.0f  ,0.0f );
   all_gameplay_entities->velocities[1] = sf::Vector2f(128.0f,0.0f  );
-  all_gameplay_entities->velocities[2] = sf::Vector2f(-16.0f ,-32.0f );
-  all_gameplay_entities->velocities[3] = sf::Vector2f(100.0f,83.0f );
-  all_gameplay_entities->velocities[4] = sf::Vector2f(25.0f ,100.0f);
+  all_gameplay_entities->velocities[2] = sf::Vector2f(0.0f,24.0f);
+  all_gameplay_entities->velocities[3] = sf::Vector2f(100.4f, 0.0f);
+  all_gameplay_entities->velocities[4] = sf::Vector2f(0.0f ,100.0f);
 
   // initialize entity positions to (0,0) origin
   for(int i=0; i < all_gameplay_entities->vertex_count; i+=4)
@@ -238,13 +241,13 @@ int main()
   for(int i=0; i < all_gameplay_entities->vertex_count; i+=4)
   {
     // the tile_size - 0.01f is to currently handle overlapping tile vertices
-    all_gameplay_entities->collision_vertices[i]   = sf::Vector2f(0.0f, 0.0f);
-    all_gameplay_entities->collision_vertices[i+1] = sf::Vector2f(test_tile_map->tile_size_x - 0.01f, 0.0f);
-    all_gameplay_entities->collision_vertices[i+2] = sf::Vector2f(test_tile_map->tile_size_x - 0.01f, test_tile_map->tile_size_y - 0.01f);
-    all_gameplay_entities->collision_vertices[i+3] = sf::Vector2f(0.0f, test_tile_map->tile_size_y - 0.01f);
+    all_gameplay_entities->collision_vertices[i]   = sf::Vector2f(0.1f, 0.0f);
+    all_gameplay_entities->collision_vertices[i+1] = sf::Vector2f(test_tile_map->tile_size_x - 0.1f, 0.0f);
+    all_gameplay_entities->collision_vertices[i+2] = sf::Vector2f(test_tile_map->tile_size_x - 0.1f, test_tile_map->tile_size_y - 0.1f);
+    all_gameplay_entities->collision_vertices[i+3] = sf::Vector2f(0.1f, test_tile_map->tile_size_y - 0.1f);
   }
 
-
+  all_gameplay_entities->update_position_by_offset( 0, sf::Vector2f(test_tile_map->tile_size_x,2 * test_tile_map->tile_size_y) );
 
   /* setup and run game loop */
   sf::Event window_event;
@@ -297,6 +300,7 @@ int main()
 
               #ifdef _DEBUG
                 if ( window_event.key.code == sf::Keyboard::D ) show_debug_data = !show_debug_data;
+                if ( window_event.key.code == sf::Keyboard::P ) gameplay_entity_ids_per_tile::print_tile_buckets();
               #endif
 
               break;
@@ -317,12 +321,27 @@ int main()
     test_tile_map->bitmap[5] = static_cast<int>(test_tile_map_bitmap_type::TEST);
     test_tile_map->bitmap[6] = static_cast<int>(test_tile_map_bitmap_type::BLAH);
     test_tile_map->bitmap[7] = static_cast<int>(test_tile_map_bitmap_type::NONE);
+    test_tile_map->bitmap[12] = static_cast<int>(test_tile_map_bitmap_type::NONE);
     test_tile_map->bitmap[15] = static_cast<int>(test_tile_map_bitmap_type::BLAH);
     test_tile_map->bitmap[26] = static_cast<int>(test_tile_map_bitmap_type::WALL);
     test_tile_map->bitmap[45] = static_cast<int>(test_tile_map_bitmap_type::WALL);
-    test_tile_map->bitmap[58] = static_cast<int>(test_tile_map_bitmap_type::WALL);
+    test_tile_map->bitmap[48] = static_cast<int>(test_tile_map_bitmap_type::WALL);
+    test_tile_map->bitmap[49] = static_cast<int>(test_tile_map_bitmap_type::WALL);
     test_tile_map->bitmap[83] = static_cast<int>(test_tile_map_bitmap_type::WALL);
     test_tile_map->bitmap[143] = static_cast<int>(test_tile_map_bitmap_type::BLAH);
+
+
+    test_tile_map->bitmap[50] = static_cast<int>(test_tile_map_bitmap_type::WALL);
+    test_tile_map->bitmap[51] = static_cast<int>(test_tile_map_bitmap_type::WALL);
+    test_tile_map->bitmap[52] = static_cast<int>(test_tile_map_bitmap_type::WALL);
+    test_tile_map->bitmap[53] = static_cast<int>(test_tile_map_bitmap_type::WALL);
+    test_tile_map->bitmap[54] = static_cast<int>(test_tile_map_bitmap_type::WALL);
+    test_tile_map->bitmap[55] = static_cast<int>(test_tile_map_bitmap_type::WALL);
+    test_tile_map->bitmap[56] = static_cast<int>(test_tile_map_bitmap_type::WALL);
+    test_tile_map->bitmap[57] = static_cast<int>(test_tile_map_bitmap_type::WALL);
+    test_tile_map->bitmap[58] = static_cast<int>(test_tile_map_bitmap_type::WALL);
+    test_tile_map->bitmap[59] = static_cast<int>(test_tile_map_bitmap_type::WALL);
+
     test_tile_map->update_tex_coords_from_bitmap();
 
 
@@ -394,6 +413,7 @@ int main()
             if(all_gameplay_entities->velocities[gameplay_entity_id].x > 0.0f)
             {
               offset_x = test_tile_map->vertex_buffer[( (tile_index+1) * 4)].position.x - all_gameplay_entities->collision_vertices[(gameplay_entity_id * 4) + 1].x;
+              offset_x += -0.01f;
             }
             else
             {
@@ -406,6 +426,7 @@ int main()
             if(all_gameplay_entities->velocities[gameplay_entity_id].y > 0.0f)
             {
               offset_y = test_tile_map->vertex_buffer[( (tile_index+1) * 4)].position.y - all_gameplay_entities->collision_vertices[(gameplay_entity_id * 4) + 2].y;
+              offset_y += -0.01f;
             }
             else
             {
