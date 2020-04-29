@@ -167,7 +167,7 @@ namespace gameplay_entity_ids_per_tile
         for(int collision_index=0; collision_index < MAX_COLLISIONS_PER_TILE; ++collision_index)
         {
           int entity_id = tile_buckets[i + collision_index];
-          if (entity_id == -1) continue;
+          //if (entity_id == -1) continue;
           std::cout << "\tid: " << entity_id << std::endl;
         }
       }
@@ -241,10 +241,10 @@ int main()
   for(int i=0; i < all_gameplay_entities->vertex_count; i+=4)
   {
     // the tile_size - 0.01f is to currently handle overlapping tile vertices
-    all_gameplay_entities->collision_vertices[i]   = sf::Vector2f(0.1f, 0.0f);
-    all_gameplay_entities->collision_vertices[i+1] = sf::Vector2f(test_tile_map->tile_size_x - 0.1f, 0.0f);
-    all_gameplay_entities->collision_vertices[i+2] = sf::Vector2f(test_tile_map->tile_size_x - 0.1f, test_tile_map->tile_size_y - 0.1f);
-    all_gameplay_entities->collision_vertices[i+3] = sf::Vector2f(0.1f, test_tile_map->tile_size_y - 0.1f);
+    all_gameplay_entities->collision_vertices[i]   = sf::Vector2f(5.1f, 0.0f);
+    all_gameplay_entities->collision_vertices[i+1] = sf::Vector2f(test_tile_map->tile_size_x - 5.1f, 0.0f);
+    all_gameplay_entities->collision_vertices[i+2] = sf::Vector2f(test_tile_map->tile_size_x - 5.1f, test_tile_map->tile_size_y - 5.1f);
+    all_gameplay_entities->collision_vertices[i+3] = sf::Vector2f(5.1f, test_tile_map->tile_size_y - 5.1f);
   }
 
   all_gameplay_entities->update_position_by_offset( 0, sf::Vector2f(test_tile_map->tile_size_x,2 * test_tile_map->tile_size_y) );
@@ -300,7 +300,7 @@ int main()
 
               #ifdef _DEBUG
                 if ( window_event.key.code == sf::Keyboard::D ) show_debug_data = !show_debug_data;
-                if ( window_event.key.code == sf::Keyboard::P ) gameplay_entity_ids_per_tile::print_tile_buckets();
+                //if ( window_event.key.code == sf::Keyboard::P ) gameplay_entity_ids_per_tile::print_tile_buckets();
               #endif
 
               break;
@@ -323,11 +323,13 @@ int main()
     test_tile_map->bitmap[7] = static_cast<int>(test_tile_map_bitmap_type::NONE);
     test_tile_map->bitmap[12] = static_cast<int>(test_tile_map_bitmap_type::NONE);
     test_tile_map->bitmap[15] = static_cast<int>(test_tile_map_bitmap_type::BLAH);
+    test_tile_map->bitmap[17] = static_cast<int>(test_tile_map_bitmap_type::WALL);
     test_tile_map->bitmap[26] = static_cast<int>(test_tile_map_bitmap_type::WALL);
     test_tile_map->bitmap[45] = static_cast<int>(test_tile_map_bitmap_type::WALL);
     test_tile_map->bitmap[48] = static_cast<int>(test_tile_map_bitmap_type::WALL);
     test_tile_map->bitmap[49] = static_cast<int>(test_tile_map_bitmap_type::WALL);
     test_tile_map->bitmap[83] = static_cast<int>(test_tile_map_bitmap_type::WALL);
+    test_tile_map->bitmap[127] = static_cast<int>(test_tile_map_bitmap_type::WALL);
     test_tile_map->bitmap[143] = static_cast<int>(test_tile_map_bitmap_type::BLAH);
 
 
@@ -385,8 +387,6 @@ int main()
         need_to_correct_y = offset_y > 0.0f;
 
         all_gameplay_entities->update_position_by_offset(gameplay_entity_id, sf::Vector2f( -1.0f * offset_x * static_cast<float>(need_to_correct_x) , -1.0f * offset_y * static_cast<float>(need_to_correct_y) ));
-
-        gameplay_entity_ids_per_tile::update(*test_tile_map, *all_gameplay_entities, gameplay_entity_id_to_tile_bucket_index_of_first_vertex, gameplay_entity_id, first_vertex_tile_map_index * MAX_COLLISIONS_PER_TILE);
       }
     }
 
@@ -394,20 +394,23 @@ int main()
     {
       int tile_bucket_index_limit;
       int gameplay_entity_id;
-      float offset_x = 0.0f;
-      float offset_y = 0.0f;
+      float offset_x;
+      float offset_y;
 
       for (int tile_index=0; tile_index < test_tile_map->tile_count; ++tile_index)
       {
         if(static_cast<test_tile_map_bitmap_type>(test_tile_map->bitmap[tile_index]) != test_tile_map_bitmap_type::WALL) continue;
 
+        offset_x = 0.0f;
+        offset_y = 0.0f;
         tile_bucket_index_limit = (tile_index + 1) * MAX_COLLISIONS_PER_TILE;
         
         for(int tile_bucket_index = (tile_index * MAX_COLLISIONS_PER_TILE); tile_bucket_index < tile_bucket_index_limit; ++tile_bucket_index)
         {
           gameplay_entity_id = gameplay_entity_ids_per_tile::tile_buckets[tile_bucket_index];
-          if(gameplay_entity_id == -1) break;
           
+          if(gameplay_entity_id == -1) break;
+
           if(all_gameplay_entities->velocities[gameplay_entity_id].x)
           {
             if(all_gameplay_entities->velocities[gameplay_entity_id].x > 0.0f)
@@ -434,11 +437,14 @@ int main()
             }
           }
 
-          all_gameplay_entities->update_position_by_offset( gameplay_entity_id, sf::Vector2f(offset_x,offset_y) );
-          gameplay_entity_ids_per_tile::update(*test_tile_map, *all_gameplay_entities, gameplay_entity_id_to_tile_bucket_index_of_first_vertex, gameplay_entity_id, tile_index * MAX_COLLISIONS_PER_TILE);
+          all_gameplay_entities->update_position_by_offset( gameplay_entity_id, sf::Vector2f(offset_x, offset_y) );
         }
       }
     }
+
+    // maybe only re-collision-sort if someone at least 1 was off map or overlapping tile?
+    gameplay_entity_ids_per_tile::update(*test_tile_map, *all_gameplay_entities, gameplay_entity_id_to_tile_bucket_index_of_first_vertex);
+
     //  then handle gameplay_entity overlaps: set velocities, correct overlapping, and commit overlap gameplay_events (game_entities)
         // find the midpoint between the 2 entities for each x and y and reset both velocties for each entity to the new calculated values
     //  then commit tile_map trigger events ex) powerups, hearts, etc...
