@@ -390,6 +390,7 @@ int main()
       }
     }
 
+
     // correct gameplay entities that are overlapping walls
     {
       int tile_bucket_index_limit;
@@ -448,6 +449,36 @@ int main()
     //  then handle gameplay_entity overlaps: set velocities, correct overlapping, and commit overlap gameplay_events (game_entities)
         // find the midpoint between the 2 entities for each x and y and reset both velocties for each entity to the new calculated values
     //  then commit tile_map trigger events ex) powerups, hearts, etc...
+
+    // iterate through all tiles checking for overlaps
+    for(int tile_bucket_index=0; tile_bucket_index < (MAX_COLLISIONS_PER_TILE * MAX_GAMEPLAY_ENTITIES); tile_bucket_index += MAX_COLLISIONS_PER_TILE)
+    {
+      // compare all entities in current tile (the max collisoins - 1 is because no one left to compare it to)
+      for(int i=0; i < (MAX_COLLISIONS_PER_TILE - 1); ++i)
+      {
+        int current_gameplay_entity_id = gameplay_entity_ids_per_tile::tile_buckets[tile_bucket_index + i];
+        if (current_gameplay_entity_id == -1) break;
+
+        for(int other_bucket_index = i+1; other_bucket_index < MAX_COLLISIONS_PER_TILE; ++other_bucket_index)
+        {
+          int next_gameplay_entity_id = gameplay_entity_ids_per_tile::tile_buckets[other_bucket_index];
+          if (next_gameplay_entity_id == -1) break;
+
+          // check for overlap, unless already handled this frame
+
+          //  get smallest top left y position entity(if both the same then condition is already true), is their vertex[2].y >= to other vertex[0].y
+          //  get smallest top left x position entity(if both the same then condition is already true), is their vertex[1].x >= to other vertex[0].x
+          //  if yes for both then there is an overlap
+          //    undo velocity for entity with smallest velocity
+          //    teleport entity with highest velocity magnitude to border of other entity
+          //    calculate and set new velocities
+          //    apply new velocities
+          //    commit overlap gameplay event
+        }
+      }
+    }
+
+    // collision sort again?
 
     // commit other gameplay events? (examples: timed bomb detonating, Q-ability activated)
     // process gameplay events?
