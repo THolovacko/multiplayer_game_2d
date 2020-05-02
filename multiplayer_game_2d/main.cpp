@@ -457,23 +457,71 @@ int main()
       for(int i=0; i < (MAX_COLLISIONS_PER_TILE - 1); ++i)
       {
         int current_gameplay_entity_id = gameplay_entity_ids_per_tile::tile_buckets[tile_bucket_index + i];
-        if (current_gameplay_entity_id == -1) break;
+        if (current_gameplay_entity_id == -1) break;  // nothing left in bucket
 
         for(int other_bucket_index = i+1; other_bucket_index < MAX_COLLISIONS_PER_TILE; ++other_bucket_index)
         {
           int next_gameplay_entity_id = gameplay_entity_ids_per_tile::tile_buckets[other_bucket_index];
-          if (next_gameplay_entity_id == -1) break;
+          if (next_gameplay_entity_id == -1) break; // nothing left in bucket
 
-          // check for overlap, unless already handled this frame
+          // check if overlap already handled this frame?
 
           //  get smallest top left y position entity(if both the same then condition is already true), is their vertex[2].y >= to other vertex[0].y
+          sf::Vector2f current_top_left_vertex = all_gameplay_entities->collision_vertices[current_gameplay_entity_id * 4];
+          sf::Vector2f other_top_left_vertex   = all_gameplay_entities->collision_vertices[next_gameplay_entity_id * 4];
+          int most_up_gameplay_entity_id;
+          int most_down_gameplay_entity_id;
+          int most_left_gameplay_entity_id;
+          int most_right_gameplay_entity_id;
+          bool is_y_overlap;
+          bool is_x_overlap;
+          
+          if (current_top_left_vertex.y != other_top_left_vertex.y) // if both are equal first condition passes
+          {
+            most_up_gameplay_entity_id = ( current_gameplay_entity_id * static_cast<int>(current_top_left_vertex.y < other_top_left_vertex.y) )
+                                       + ( next_gameplay_entity_id    * static_cast<int>(other_top_left_vertex.y < current_top_left_vertex.y) );
+
+            most_down_gameplay_entity_id = ( current_gameplay_entity_id * static_cast<int>(most_up_gameplay_entity_id != current_gameplay_entity_id) )
+                                         + ( next_gameplay_entity_id    * static_cast<int>(most_up_gameplay_entity_id != next_gameplay_entity_id)    );
+
+            is_y_overlap = all_gameplay_entities->collision_vertices[(most_up_gameplay_entity_id * 4) + 2].y >= all_gameplay_entities->collision_vertices[most_up_gameplay_entity_id * 4].y;
+          }
+          else
+          {
+            is_y_overlap = true;
+          }
+
           //  get smallest top left x position entity(if both the same then condition is already true), is their vertex[1].x >= to other vertex[0].x
+          if (current_top_left_vertex.x != other_top_left_vertex.x) // if both are equal first condition passes
+          {
+            most_left_gameplay_entity_id = ( current_gameplay_entity_id * static_cast<int>(current_top_left_vertex.x < other_top_left_vertex.x)   )
+                                         + ( next_gameplay_entity_id    * static_cast<int>(other_top_left_vertex.x   < current_top_left_vertex.x) );
+
+            most_right_gameplay_entity_id = ( current_gameplay_entity_id * static_cast<int>(most_left_gameplay_entity_id != current_gameplay_entity_id) )
+                                          + ( next_gameplay_entity_id    * static_cast<int>(most_left_gameplay_entity_id != next_gameplay_entity_id)    );
+
+            is_x_overlap = all_gameplay_entities->collision_vertices[(most_left_gameplay_entity_id * 4) + 1].x >= all_gameplay_entities->collision_vertices[most_right_gameplay_entity_id * 4].x;
+          }
+          else
+          {
+            is_x_overlap = true;
+          }
+
           //  if yes for both then there is an overlap
-          //    undo velocity for entity with smallest velocity
-          //    teleport entity with highest velocity magnitude to border of other entity
-          //    calculate and set new velocities
-          //    apply new velocities
-          //    commit overlap gameplay event
+          if(is_y_overlap && is_x_overlap)
+          {
+            //    undo velocity for entity with smallest velocity for x and y
+            
+            // get entity_id with smallest y velocity (if same ... should be able to choose arbitrary id)
+            //int smallest_y_velocity_gameplay_entity_id;
+            //int highest_y_velocity_gameplay_entity_id;
+
+            //update_position_by_offset(const int gameplay_entity_id, const sf::Vector2f& offset);
+            //    teleport entity with highest velocity magnitude to border of other entity
+            //    calculate and set new velocities
+            //    apply new velocities
+            //    commit overlap gameplay event
+          }
         }
       }
     }
