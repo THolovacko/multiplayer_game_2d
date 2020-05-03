@@ -4,6 +4,7 @@
 #include <string.h>
 #include <windows.h>
 #include <bitset>
+#include <cmath>
 #include "tile_map.h"
 #include "gameplay_entities.h"
 
@@ -247,7 +248,11 @@ int main()
     all_gameplay_entities->collision_vertices[i+3] = sf::Vector2f(5.1f, test_tile_map->tile_size_y - 5.1f);
   }
 
-  all_gameplay_entities->update_position_by_offset( 0, sf::Vector2f(test_tile_map->tile_size_x,2 * test_tile_map->tile_size_y) );
+  all_gameplay_entities->update_position_by_offset( 0, sf::Vector2f(test_tile_map->tile_size_x * 2, 2 * test_tile_map->tile_size_y) );
+  all_gameplay_entities->update_position_by_offset( 1, sf::Vector2f(test_tile_map->tile_size_x * 4, test_tile_map->tile_size_y) );
+  all_gameplay_entities->update_position_by_offset( 2, sf::Vector2f(test_tile_map->tile_size_x * 6, test_tile_map->tile_size_y) );
+  all_gameplay_entities->update_position_by_offset( 3, sf::Vector2f(test_tile_map->tile_size_x * 8,2 * test_tile_map->tile_size_y) );
+  all_gameplay_entities->update_position_by_offset( 4, sf::Vector2f(test_tile_map->tile_size_x * 3,3 * test_tile_map->tile_size_y) );
 
   /* setup and run game loop */
   sf::Event window_event;
@@ -459,11 +464,12 @@ int main()
         int current_gameplay_entity_id = gameplay_entity_ids_per_tile::tile_buckets[tile_bucket_index + i];
         if (current_gameplay_entity_id == -1) break;  // nothing left in bucket
 
-        for(int other_bucket_index = i+1; other_bucket_index < MAX_COLLISIONS_PER_TILE; ++other_bucket_index)
+        for(int other_bucket_index = tile_bucket_index + i + 1; other_bucket_index < MAX_COLLISIONS_PER_TILE; ++other_bucket_index)
         {
           int next_gameplay_entity_id = gameplay_entity_ids_per_tile::tile_buckets[other_bucket_index];
           if (next_gameplay_entity_id == -1) break; // nothing left in bucket
 
+            std::cout << "reaching here\n";
           // check if overlap already handled this frame?
 
           //  get smallest top left y position entity(if both the same then condition is already true), is their vertex[2].y >= to other vertex[0].y
@@ -510,14 +516,44 @@ int main()
           //  if yes for both then there is an overlap
           if(is_y_overlap && is_x_overlap)
           {
-            //    undo velocity for entity with smallest velocity for x and y
-            
-            // get entity_id with smallest y velocity (if same ... should be able to choose arbitrary id)
-            //int smallest_y_velocity_gameplay_entity_id;
-            //int highest_y_velocity_gameplay_entity_id;
+            int   smallest_velocity_gameplay_entity_id;
+            int   biggest_velocity_gameplay_entity_id;
+            float y_offset;
+            float x_offset;
 
-            //update_position_by_offset(const int gameplay_entity_id, const sf::Vector2f& offset);
-            //    teleport entity with highest velocity magnitude to border of other entity
+            smallest_velocity_gameplay_entity_id = ( current_gameplay_entity_id * static_cast<int>(std::abs(all_gameplay_entities->velocities[current_gameplay_entity_id].y)) <= std::abs(all_gameplay_entities->velocities[next_gameplay_entity_id].y) )
+                                                 + ( next_gameplay_entity_id    * static_cast<int>(std::abs(all_gameplay_entities->velocities[current_gameplay_entity_id].y)) >  std::abs(all_gameplay_entities->velocities[next_gameplay_entity_id].y) );
+
+            biggest_velocity_gameplay_entity_id  = ( current_gameplay_entity_id * static_cast<int>(smallest_velocity_gameplay_entity_id != current_gameplay_entity_id) )
+                                                 + ( next_gameplay_entity_id    * static_cast<int>(smallest_velocity_gameplay_entity_id != next_gameplay_entity_id)    );
+
+            // undo velocity move
+            all_gameplay_entities->update_position_by_offset( smallest_velocity_gameplay_entity_id, sf::Vector2f(0.0f, -1.0f * all_gameplay_entities->velocities[smallest_velocity_gameplay_entity_id].y * elapsed_frame_time_seconds) );
+
+            y_offset = all_gameplay_entities->velocities[biggest_velocity_gameplay_entity_id].y >= 0.0f ?
+                      all_gameplay_entities->collision_vertices[biggest_velocity_gameplay_entity_id + 2].y - all_gameplay_entities->collision_vertices[smallest_velocity_gameplay_entity_id].y
+                     :
+                      all_gameplay_entities->collision_vertices[biggest_velocity_gameplay_entity_id].y - all_gameplay_entities->collision_vertices[smallest_velocity_gameplay_entity_id + 2].y;
+
+
+            smallest_velocity_gameplay_entity_id = ( current_gameplay_entity_id * static_cast<int>(std::abs(all_gameplay_entities->velocities[current_gameplay_entity_id].x)) <= std::abs(all_gameplay_entities->velocities[next_gameplay_entity_id].x) )
+                                                 + ( next_gameplay_entity_id    * static_cast<int>(std::abs(all_gameplay_entities->velocities[current_gameplay_entity_id].x)) >  std::abs(all_gameplay_entities->velocities[next_gameplay_entity_id].x) );
+
+            biggest_velocity_gameplay_entity_id  = ( current_gameplay_entity_id * static_cast<int>(smallest_velocity_gameplay_entity_id != current_gameplay_entity_id) )
+                                                 + ( next_gameplay_entity_id    * static_cast<int>(smallest_velocity_gameplay_entity_id != next_gameplay_entity_id)    );
+
+            // undo velocity move
+            all_gameplay_entities->update_position_by_offset( smallest_velocity_gameplay_entity_id, sf::Vector2f(-1.0f * all_gameplay_entities->velocities[smallest_velocity_gameplay_entity_id].x * elapsed_frame_time_seconds, 0.0f) );
+
+            x_offset = all_gameplay_entities->velocities[biggest_velocity_gameplay_entity_id].x >= 0.0f ?
+                       all_gameplay_entities->collision_vertices[smallest_velocity_gameplay_entity_id].x - all_gameplay_entities->collision_vertices[biggest_velocity_gameplay_entity_id + 2].x
+                      :
+                       all_gameplay_entities->collision_vertices[biggest_velocity_gameplay_entity_id].x - all_gameplay_entities->collision_vertices[smallest_velocity_gameplay_entity_id + 2].x;
+
+
+            // teleport entity with biggest velocity magnitude to border of other entity
+            all_gameplay_entities->update_position_by_offset( biggest_velocity_gameplay_entity_id, sf::Vector2f(x_offset, y_offset) );
+
             //    calculate and set new velocities
             //    apply new velocities
             //    commit overlap gameplay event
