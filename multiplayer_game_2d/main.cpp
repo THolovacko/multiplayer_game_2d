@@ -12,9 +12,10 @@
 #pragma warning(disable : 26812)
 
 
-#define TILE_MAP_WIDTH              16                                  // in pixels
-#define TILE_MAP_HEIGHT             9                                   // in pixels
-#define MAX_GAMEPLAY_ENTITIES       (TILE_MAP_WIDTH * TILE_MAP_HEIGHT)
+#define TILE_MAP_WIDTH              16
+#define TILE_MAP_HEIGHT             9
+#define TILE_MAP_COUNT              (TILE_MAP_WIDTH * TILE_MAP_HEIGHT)
+#define MAX_GAMEPLAY_ENTITIES       TILE_MAP_COUNT
 #define TILE_MAP_TEXTURE_SIDE_SIZE  64                                  // in pixels
 #define MAX_COLLISIONS_PER_TILE     9                                   // potential game objects (collisions) in an single tile
 
@@ -456,20 +457,19 @@ int main()
     //  then commit tile_map trigger events ex) powerups, hearts, etc...
 
     // iterate through all tiles checking for overlaps
-    for(int tile_bucket_index=0; tile_bucket_index < (MAX_COLLISIONS_PER_TILE * MAX_GAMEPLAY_ENTITIES); tile_bucket_index += MAX_COLLISIONS_PER_TILE)
+    for(int tile_bucket_index=0; tile_bucket_index < (MAX_COLLISIONS_PER_TILE * TILE_MAP_COUNT); tile_bucket_index += MAX_COLLISIONS_PER_TILE)
     {
       // compare all entities in current tile (the max collisoins - 1 is because no one left to compare it to)
-      for(int i=0; i < (MAX_COLLISIONS_PER_TILE - 1); ++i)
+      for(int offset=0; offset < (MAX_COLLISIONS_PER_TILE - 1); ++offset)
       {
-        int current_gameplay_entity_id = gameplay_entity_ids_per_tile::tile_buckets[tile_bucket_index + i];
+        int current_gameplay_entity_id = gameplay_entity_ids_per_tile::tile_buckets[tile_bucket_index + offset];
         if (current_gameplay_entity_id == -1) break;  // nothing left in bucket
 
-        for(int other_bucket_index = tile_bucket_index + i + 1; other_bucket_index < MAX_COLLISIONS_PER_TILE; ++other_bucket_index)
+        for(int other_bucket_index = tile_bucket_index + offset + 1; other_bucket_index < (tile_bucket_index + MAX_COLLISIONS_PER_TILE); ++other_bucket_index)
         {
           int next_gameplay_entity_id = gameplay_entity_ids_per_tile::tile_buckets[other_bucket_index];
           if (next_gameplay_entity_id == -1) break; // nothing left in bucket
 
-            std::cout << "reaching here\n";
           // check if overlap already handled this frame?
 
           //  get smallest top left y position entity(if both the same then condition is already true), is their vertex[2].y >= to other vertex[0].y
