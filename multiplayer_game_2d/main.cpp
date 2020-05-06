@@ -474,10 +474,10 @@ int main()
 
           sf::Vector2f current_top_left_vertex = all_gameplay_entities->collision_vertices[current_gameplay_entity_id * 4];
           sf::Vector2f next_top_left_vertex    = all_gameplay_entities->collision_vertices[next_gameplay_entity_id * 4];
-          int most_up_gameplay_entity_id;
-          int most_down_gameplay_entity_id;
-          int most_left_gameplay_entity_id;
-          int most_right_gameplay_entity_id;
+          int most_up_gameplay_entity_id    = -1;
+          int most_down_gameplay_entity_id  = -1;
+          int most_left_gameplay_entity_id  = -1;
+          int most_right_gameplay_entity_id = -1;
           bool is_y_overlap;
           bool is_x_overlap;
           
@@ -519,14 +519,18 @@ int main()
             all_gameplay_entities->update_position_by_offset(next_gameplay_entity_id,    -1.0f * all_gameplay_entities->velocities[next_gameplay_entity_id]    * elapsed_frame_time_seconds);
 
             // calculate how long it took to intersect and then apply original velocity for that time
+            // use equations of motion: gameplay_entity_position(time) = gameplay_entity_position(0) + (velocity * time)
+            // need to solve for time when gameplay_entity_positions are equal to each other
 
-            //  ?????
-            //    start_distance = get distance between most_left_entity and most_right_entity
-            //    start_time     = get time (in seconds) for how long it takes most_left_entity to travel start_distance
-            //    more_distance  = get distance traveled by most_right_entity in start_time
-            //    more_time      = get time it takes for most_left_entity to travel more_distance
-            //    intersect_time = start_time + more_time
+            // ! need to handle if no most_left and no more right entities
+            // ! might have bug when intersecting x and y was already overlapping so y intersect time is crazy or something
 
+            float x_intersect_time = std::abs(( all_gameplay_entities->collision_vertices[(most_left_gameplay_entity_id * 4) + 1].x - all_gameplay_entities->collision_vertices[most_right_gameplay_entity_id * 4].x) / ( all_gameplay_entities->velocities[most_right_gameplay_entity_id].x - all_gameplay_entities->velocities[most_left_gameplay_entity_id].x ));
+            float y_intersect_time = std::abs(( all_gameplay_entities->collision_vertices[(most_up_gameplay_entity_id * 4)   + 2].y - all_gameplay_entities->collision_vertices[most_down_gameplay_entity_id * 4].y ) / ( all_gameplay_entities->velocities[most_down_gameplay_entity_id].y  - all_gameplay_entities->velocities[most_up_gameplay_entity_id].y   ));
+
+            // apply original velocity for intersect time
+            //all_gameplay_entities->update_position_by_offset( current_gameplay_entity_id,  velocity * );
+            //all_gameplay_entities->update_position_by_offset( next_gameplay_entity_id,     velocity * );
             
             // calculate new velocity and apply for remaining time of current frame (elapsed_time - instersect_time)
             float x_midpoint = (all_gameplay_entities->velocities[current_gameplay_entity_id].x + all_gameplay_entities->velocities[next_gameplay_entity_id].x) / 2.0f;
