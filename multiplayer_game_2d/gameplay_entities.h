@@ -15,6 +15,7 @@ struct gameplay_entities
 {
   /* @remember: all hitboxes at max are tile-width */
   /* @remember: velocities should never move an entity more than half a tile per frame */
+  /* @remember: can only have x or y velocity at a time */
 
   sf::Vertex vertex_buffer[p_max_size * 4];           // 4 vertices per entity
   sf::Texture sprite_sheet_texture;                   // a sprite sheet where each row is a separate entity and each column is a different frame for an animation (the first row is transparent)
