@@ -12,8 +12,8 @@
 #pragma warning(disable : 26812)
 
 
-#define TILE_MAP_WIDTH              16
-#define TILE_MAP_HEIGHT             9
+#define TILE_MAP_WIDTH              18
+#define TILE_MAP_HEIGHT             11
 #define TILE_MAP_COUNT              (TILE_MAP_WIDTH * TILE_MAP_HEIGHT)
 #define MAX_GAMEPLAY_ENTITIES       TILE_MAP_COUNT
 #define TILE_MAP_TEXTURE_SIDE_SIZE  64                                  // in pixels
@@ -224,11 +224,11 @@ int main()
   all_gameplay_entities->animation_indexes[0] = 0;
   all_gameplay_entities->animation_indexes[1] = 0;
   all_gameplay_entities->animation_indexes[2] = 0;
-  all_gameplay_entities->velocities[0] = sf::Vector2f(0.0f  ,0.0f );
-  all_gameplay_entities->velocities[1] = sf::Vector2f(128.0f,0.0f  );
-  all_gameplay_entities->velocities[2] = sf::Vector2f(0.0f,0.0f);
+  all_gameplay_entities->velocities[0] = sf::Vector2f(0.0f ,0.0f );
+  all_gameplay_entities->velocities[1] = sf::Vector2f(0.0f, 10.0f);
+  all_gameplay_entities->velocities[2] = sf::Vector2f(0.0f, 0.0f);
   all_gameplay_entities->velocities[3] = sf::Vector2f(10.4f, 0.0f);
-  all_gameplay_entities->velocities[4] = sf::Vector2f(0.0f ,20.0f);
+  all_gameplay_entities->velocities[4] = sf::Vector2f(25.0f ,0.0f);
 
   // initialize entity positions to (0,0) origin
   for(int i=0; i < all_gameplay_entities->vertex_count; i+=4)
@@ -243,17 +243,17 @@ int main()
   for(int i=0; i < all_gameplay_entities->vertex_count; i+=4)
   {
     // the tile_size - 0.01f is to currently handle overlapping tile vertices
-    all_gameplay_entities->collision_vertices[i]   = sf::Vector2f(5.1f, 0.0f);
-    all_gameplay_entities->collision_vertices[i+1] = sf::Vector2f(test_tile_map->tile_size_x - 5.1f, 0.0f);
-    all_gameplay_entities->collision_vertices[i+2] = sf::Vector2f(test_tile_map->tile_size_x - 5.1f, test_tile_map->tile_size_y - 5.1f);
-    all_gameplay_entities->collision_vertices[i+3] = sf::Vector2f(5.1f, test_tile_map->tile_size_y - 5.1f);
+    all_gameplay_entities->collision_vertices[i]   = sf::Vector2f(25.1f, 0.0f);
+    all_gameplay_entities->collision_vertices[i+1] = sf::Vector2f(test_tile_map->tile_size_x - 25.1f, 0.0f);
+    all_gameplay_entities->collision_vertices[i+2] = sf::Vector2f(test_tile_map->tile_size_x - 25.1f, test_tile_map->tile_size_y - 25.1f);
+    all_gameplay_entities->collision_vertices[i+3] = sf::Vector2f(25.1f, test_tile_map->tile_size_y - 25.1f);
   }
 
-  all_gameplay_entities->update_position_by_offset( 0, sf::Vector2f(test_tile_map->tile_size_x * 2, 2 * test_tile_map->tile_size_y) );
-  all_gameplay_entities->update_position_by_offset( 1, sf::Vector2f(test_tile_map->tile_size_x * 4, test_tile_map->tile_size_y) );
-  all_gameplay_entities->update_position_by_offset( 2, sf::Vector2f(test_tile_map->tile_size_x * 6, test_tile_map->tile_size_y) );
-  all_gameplay_entities->update_position_by_offset( 3, sf::Vector2f(test_tile_map->tile_size_x * 8,2 * test_tile_map->tile_size_y) );
-  all_gameplay_entities->update_position_by_offset( 4, sf::Vector2f(test_tile_map->tile_size_x * 3,3 * test_tile_map->tile_size_y) );
+  all_gameplay_entities->update_position_by_offset( 0, sf::Vector2f(test_tile_map->tile_size_x * 2, 3 * test_tile_map->tile_size_y) );
+  all_gameplay_entities->update_position_by_offset( 1, sf::Vector2f(test_tile_map->tile_size_x * 4, 5 * test_tile_map->tile_size_y) );
+  all_gameplay_entities->update_position_by_offset( 2, sf::Vector2f(test_tile_map->tile_size_x * 6, 7 * test_tile_map->tile_size_y) );
+  all_gameplay_entities->update_position_by_offset( 3, sf::Vector2f(test_tile_map->tile_size_x * 8, 3 * test_tile_map->tile_size_y) );
+  all_gameplay_entities->update_position_by_offset( 4, sf::Vector2f(test_tile_map->tile_size_x * 3, 7 * test_tile_map->tile_size_y) );
 
   /* setup and run game loop */
   sf::Event window_event;
@@ -319,36 +319,37 @@ int main()
 
 
     /* calculate gameplay stuff */
-    test_tile_map->bitmap[0] = static_cast<int>(test_tile_map_bitmap_type::NONE);
-    test_tile_map->bitmap[1] = static_cast<int>(test_tile_map_bitmap_type::BLAH);
-    test_tile_map->bitmap[2] = static_cast<int>(test_tile_map_bitmap_type::TEST);
-    test_tile_map->bitmap[3] = static_cast<int>(test_tile_map_bitmap_type::TEMP);
-    test_tile_map->bitmap[4] = static_cast<int>(test_tile_map_bitmap_type::TEMP);
-    test_tile_map->bitmap[5] = static_cast<int>(test_tile_map_bitmap_type::TEST);
-    test_tile_map->bitmap[6] = static_cast<int>(test_tile_map_bitmap_type::BLAH);
-    test_tile_map->bitmap[7] = static_cast<int>(test_tile_map_bitmap_type::NONE);
-    test_tile_map->bitmap[12] = static_cast<int>(test_tile_map_bitmap_type::NONE);
-    test_tile_map->bitmap[15] = static_cast<int>(test_tile_map_bitmap_type::BLAH);
-    test_tile_map->bitmap[17] = static_cast<int>(test_tile_map_bitmap_type::WALL);
-    test_tile_map->bitmap[26] = static_cast<int>(test_tile_map_bitmap_type::WALL);
-    test_tile_map->bitmap[45] = static_cast<int>(test_tile_map_bitmap_type::WALL);
-    test_tile_map->bitmap[48] = static_cast<int>(test_tile_map_bitmap_type::WALL);
-    test_tile_map->bitmap[49] = static_cast<int>(test_tile_map_bitmap_type::WALL);
-    test_tile_map->bitmap[83] = static_cast<int>(test_tile_map_bitmap_type::WALL);
-    test_tile_map->bitmap[127] = static_cast<int>(test_tile_map_bitmap_type::WALL);
-    test_tile_map->bitmap[143] = static_cast<int>(test_tile_map_bitmap_type::BLAH);
 
 
-    test_tile_map->bitmap[50] = static_cast<int>(test_tile_map_bitmap_type::WALL);
-    test_tile_map->bitmap[51] = static_cast<int>(test_tile_map_bitmap_type::WALL);
-    test_tile_map->bitmap[52] = static_cast<int>(test_tile_map_bitmap_type::WALL);
-    test_tile_map->bitmap[53] = static_cast<int>(test_tile_map_bitmap_type::WALL);
-    test_tile_map->bitmap[54] = static_cast<int>(test_tile_map_bitmap_type::WALL);
-    test_tile_map->bitmap[55] = static_cast<int>(test_tile_map_bitmap_type::WALL);
-    test_tile_map->bitmap[56] = static_cast<int>(test_tile_map_bitmap_type::WALL);
-    test_tile_map->bitmap[57] = static_cast<int>(test_tile_map_bitmap_type::WALL);
-    test_tile_map->bitmap[58] = static_cast<int>(test_tile_map_bitmap_type::WALL);
-    test_tile_map->bitmap[59] = static_cast<int>(test_tile_map_bitmap_type::WALL);
+    // generate boundary walls
+    for(int i=0; i < test_tile_map->width; ++i)
+    {
+      test_tile_map->bitmap[i] = static_cast<int>(test_tile_map_bitmap_type::WALL);
+    }
+
+    for(int i=0; i < test_tile_map->height; ++i)
+    {
+      test_tile_map->bitmap[i * test_tile_map->width] = static_cast<int>(test_tile_map_bitmap_type::WALL);
+    }
+
+    for(int i=(test_tile_map->tile_count - test_tile_map->width); i < test_tile_map->tile_count; ++i)
+    {
+      test_tile_map->bitmap[i] = static_cast<int>(test_tile_map_bitmap_type::WALL);
+    }
+
+    for(int i=0; i < test_tile_map->height; ++i)
+    {
+      test_tile_map->bitmap[(i * test_tile_map->width) + (test_tile_map->width - 1)] = static_cast<int>(test_tile_map_bitmap_type::WALL);
+    }
+
+    for(int tile_index = (test_tile_map->width * 2); tile_index < test_tile_map->tile_count; tile_index += (test_tile_map->width * 2))
+    {
+      for(int tile_index_offset=0; tile_index_offset < test_tile_map->width; ++tile_index_offset)
+      {
+        if (tile_index_offset % 2 != 0)
+          test_tile_map->bitmap[tile_index + tile_index_offset] = static_cast<int>(test_tile_map_bitmap_type::WALL);
+      }
+    }
 
     test_tile_map->update_tex_coords_from_bitmap();
 
