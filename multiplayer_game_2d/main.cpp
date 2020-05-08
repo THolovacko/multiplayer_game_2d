@@ -227,7 +227,7 @@ int main()
   all_gameplay_entities->velocities[0] = sf::Vector2f(0.0f ,0.0f );
   all_gameplay_entities->velocities[1] = sf::Vector2f(0.0f, 10.0f);
   all_gameplay_entities->velocities[2] = sf::Vector2f(0.0f, 0.0f);
-  all_gameplay_entities->velocities[3] = sf::Vector2f(10.4f, 0.0f);
+  all_gameplay_entities->velocities[3] = sf::Vector2f(0.0f, 0.0f);
   all_gameplay_entities->velocities[4] = sf::Vector2f(25.0f ,0.0f);
 
   // initialize entity positions to (0,0) origin
@@ -321,7 +321,8 @@ int main()
     /* calculate gameplay stuff */
 
 
-    // generate boundary walls
+    // generate walls
+    /*
     for(int i=0; i < test_tile_map->width; ++i)
     {
       test_tile_map->bitmap[i] = static_cast<int>(test_tile_map_bitmap_type::WALL);
@@ -342,7 +343,9 @@ int main()
       test_tile_map->bitmap[(i * test_tile_map->width) + (test_tile_map->width - 1)] = static_cast<int>(test_tile_map_bitmap_type::WALL);
     }
 
-    for(int tile_index = (test_tile_map->width * 2); tile_index < test_tile_map->tile_count; tile_index += (test_tile_map->width * 2))
+    */
+    //for(int tile_index = (test_tile_map->width * 2); tile_index < test_tile_map->tile_count; tile_index += (test_tile_map->width * 2))
+    for(int tile_index = 0; tile_index < test_tile_map->tile_count; tile_index += (test_tile_map->width * 2))
     {
       for(int tile_index_offset=0; tile_index_offset < test_tile_map->width; ++tile_index_offset)
       {
@@ -352,6 +355,7 @@ int main()
     }
 
     test_tile_map->update_tex_coords_from_bitmap();
+
 
 
     all_gameplay_entities->update_positions_by_velocity(elapsed_frame_time_seconds);
@@ -446,6 +450,7 @@ int main()
           }
 
           all_gameplay_entities->update_position_by_offset( gameplay_entity_id, sf::Vector2f(offset_x, offset_y) );
+          all_gameplay_entities->velocities[gameplay_entity_id] = sf::Vector2f(0.0f, 0.0f);
         }
       }
     }
@@ -583,6 +588,8 @@ int main()
             sf::Vector2f new_velocity;
             bool is_different_axis_velocities = false;
 
+            // ! should probably assert if subtracting velocites makes denominator 0
+
             if ( (is_current_gameplay_entity_x_velocity && is_next_gameplay_entity_x_velocity) || (is_current_gameplay_entity_x_velocity && is_next_gameplay_entity_stationary) || (is_next_gameplay_entity_x_velocity && is_current_gameplay_entity_stationary) )
             {
               // handle x velocity only
@@ -599,11 +606,11 @@ int main()
             }
             else
             {
-              // ! should probably assert if game broke because of collision for 2 stationary gameplay_entities
-              is_different_axis_velocities = true;
+              if (!is_current_gameplay_entity_stationary && !is_next_gameplay_entity_stationary)
+                is_different_axis_velocities = true;
             }
 
-            if (!is_different_axis_velocities)
+            if (!is_different_axis_velocities && (!is_current_gameplay_entity_stationary || !is_next_gameplay_entity_stationary))
             {
               all_gameplay_entities->update_position_by_offset( current_gameplay_entity_id, all_gameplay_entities->velocities[current_gameplay_entity_id] * intersect_time);
               all_gameplay_entities->update_position_by_offset( current_gameplay_entity_id, all_gameplay_entities->velocities[next_gameplay_entity_id]    * intersect_time);
