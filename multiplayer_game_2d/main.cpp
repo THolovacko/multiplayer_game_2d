@@ -462,6 +462,7 @@ int main()
         // find the midpoint between the 2 entities for each x and y and reset both velocties for each entity to the new calculated values
     //  then commit tile_map trigger events ex) powerups, hearts, etc...
 
+    // ! need to be able to handle multiple entity collisions with same entity ... currently only supports single collision per entity
     // iterate through all tiles checking for overlaps
     for(int tile_bucket_index=0; tile_bucket_index < (MAX_COLLISIONS_PER_TILE * TILE_MAP_COUNT); tile_bucket_index += MAX_COLLISIONS_PER_TILE)
     {
@@ -501,6 +502,8 @@ int main()
           {
             is_y_overlap = true;
 
+            // look at velocity signs and sizes to determine
+
             // arbitrary values for when entities are on top of each other (game broke?)
             most_up_gameplay_entity_id   = current_gameplay_entity_id;
             most_down_gameplay_entity_id = next_gameplay_entity_id;
@@ -520,6 +523,8 @@ int main()
           {
             is_x_overlap = true;
 
+            // look at velocity signs and sizes to determine
+
             // arbitrary values for when entities are on top of each other (game broke?)
             most_left_gameplay_entity_id  = current_gameplay_entity_id;
             most_right_gameplay_entity_id = next_gameplay_entity_id;
@@ -529,94 +534,77 @@ int main()
           if(is_y_overlap && is_x_overlap)
           {
             // @remember: gameplay entities by design won't be stationary and located in 2 tiles
+            // calculate how long it took to intersect and then apply original velocity for that time
+            //    use equations of motion: gameplay_entity_position(time) = gameplay_entity_position(0) + (velocity * time)
+            //    need to solve for time when gameplay_entity_positions are equal to each other
+            // if entities have different x/y velocities then only move the entity that has the right of way; the other is treated as running into a wall
+            //    decide right of way = check if far vertice on velocity direction side have no overlap
+
 
             // undo velocity moves
             all_gameplay_entities->update_position_by_offset(current_gameplay_entity_id, -1.0f * all_gameplay_entities->velocities[current_gameplay_entity_id] * elapsed_frame_time_seconds);
             all_gameplay_entities->update_position_by_offset(next_gameplay_entity_id,    -1.0f * all_gameplay_entities->velocities[next_gameplay_entity_id]    * elapsed_frame_time_seconds);
 
-            // calculate how long it took to intersect and then apply original velocity for that time
-            //    use equations of motion: gameplay_entity_position(time) = gameplay_entity_position(0) + (velocity * time)
-            //    need to solve for time when gameplay_entity_positions are equal to each other
+            bool is_current_gameplay_entity_stationary = (all_gameplay_entities->velocities[current_gameplay_entity_id].x == 0.0f) && (all_gameplay_entities->velocities[current_gameplay_entity_id].y == 0.0f);
+            bool is_next_gameplay_entity_stationary    = (all_gameplay_entities->velocities[next_gameplay_entity_id].x    == 0.0f) && (all_gameplay_entities->velocities[next_gameplay_entity_id].y    == 0.0f);
+            bool is_x_axis_velocity_collision          = std::abs(all_gameplay_entities->velocities[current_gameplay_entity_id].x) + std::abs(all_gameplay_entities->velocities[next_gameplay_entity_id].x) > 0.0f;
+            bool is_y_axis_velocity_collision          = std::abs(all_gameplay_entities->velocities[current_gameplay_entity_id].y) + std::abs(all_gameplay_entities->velocities[next_gameplay_entity_id].y) > 0.0f;
 
-
-            // if entities have different x/y velocities then only move the entity that has the right of way; the other is treated as running into a wall
-            //    decide right of way = check if far vertice on velocity direction side have no overlap
-
-            bool is_current_gameplay_entity_stationary;
-            bool is_next_gameplay_entity_stationary;
-            bool is_current_gameplay_entity_x_velocity;
-            bool is_next_gameplay_entity_x_velocity;
-
-            if (all_gameplay_entities->velocities[current_gameplay_entity_id].x)
-            {
-              is_current_gameplay_entity_stationary = false;
-              is_current_gameplay_entity_x_velocity = true;
-            }
-            else
-            {
-              is_current_gameplay_entity_x_velocity = false;
-              if (all_gameplay_entities->velocities[current_gameplay_entity_id].y == 0.0f)
-              {
-                is_current_gameplay_entity_stationary = true;
-              }
-              else
-              {
-                is_current_gameplay_entity_stationary = false;
-              }
-            }
-
-            if (all_gameplay_entities->velocities[next_gameplay_entity_id].x)
-            {
-              is_next_gameplay_entity_stationary = false;
-              is_next_gameplay_entity_x_velocity = true;
-            }
-            else
-            {
-              is_next_gameplay_entity_x_velocity = false;
-              if (all_gameplay_entities->velocities[next_gameplay_entity_id].y == 0.0f)
-              {
-                is_next_gameplay_entity_stationary = true;
-              }
-              else
-              {
-                is_next_gameplay_entity_stationary = false;
-              }
-            }
-
-
+            sf::Vector2f collision_velocity;
             float intersect_time;
-            sf::Vector2f new_velocity;
-            bool is_different_axis_velocities = false;
+            float post_intersect_time;
+            float velocity_midpoint;
+ 
 
-            // ! should probably assert if subtracting velocites makes denominator 0
-
-            if ( (is_current_gameplay_entity_x_velocity && is_next_gameplay_entity_x_velocity) || (is_current_gameplay_entity_x_velocity && is_next_gameplay_entity_stationary) || (is_next_gameplay_entity_x_velocity && is_current_gameplay_entity_stationary) )
+            if (is_x_axis_velocity_collision && !is_y_axis_velocity_collision)
             {
-              // handle x velocity only
-              intersect_time = std::abs(( all_gameplay_entities->collision_vertices[(most_left_gameplay_entity_id * 4) + 1].x - all_gameplay_entities->collision_vertices[most_right_gameplay_entity_id * 4].x) / ( all_gameplay_entities->velocities[most_right_gameplay_entity_id].x - all_gameplay_entities->velocities[most_left_gameplay_entity_id].x ));
-              float x_midpoint = (all_gameplay_entities->velocities[current_gameplay_entity_id].x + all_gameplay_entities->velocities[next_gameplay_entity_id].x) / 2.0f;
-              new_velocity = sf::Vector2f(x_midpoint, 0.0f);
+              intersect_time     = std::abs(( all_gameplay_entities->collision_vertices[(most_left_gameplay_entity_id * 4) + 1].x - all_gameplay_entities->collision_vertices[most_right_gameplay_entity_id * 4].x) / ( all_gameplay_entities->velocities[most_right_gameplay_entity_id].x - all_gameplay_entities->velocities[most_left_gameplay_entity_id].x ));
+              velocity_midpoint  = (all_gameplay_entities->velocities[current_gameplay_entity_id].x + all_gameplay_entities->velocities[next_gameplay_entity_id].x) / 2.0f;
+              collision_velocity = sf::Vector2f(velocity_midpoint, 0.0f);
             }
-            else if ( (!is_current_gameplay_entity_x_velocity && !is_next_gameplay_entity_x_velocity) || (!is_current_gameplay_entity_x_velocity && is_next_gameplay_entity_stationary) || (!is_next_gameplay_entity_x_velocity && is_current_gameplay_entity_stationary) )
+            else if (is_y_axis_velocity_collision && !is_x_axis_velocity_collision)
             {
-              // handle y velocity only
-              intersect_time = std::abs(( all_gameplay_entities->collision_vertices[(most_up_gameplay_entity_id * 4)   + 2].y - all_gameplay_entities->collision_vertices[most_down_gameplay_entity_id * 4].y ) / ( all_gameplay_entities->velocities[most_down_gameplay_entity_id].y  - all_gameplay_entities->velocities[most_up_gameplay_entity_id].y   ));
-              float y_midpoint = (all_gameplay_entities->velocities[current_gameplay_entity_id].y + all_gameplay_entities->velocities[next_gameplay_entity_id].y) / 2.0f;
-              new_velocity = sf::Vector2f(0.0f, y_midpoint);
+              intersect_time     = std::abs(( all_gameplay_entities->collision_vertices[(most_up_gameplay_entity_id * 4) + 2].y - all_gameplay_entities->collision_vertices[most_down_gameplay_entity_id * 4].y ) / ( all_gameplay_entities->velocities[most_down_gameplay_entity_id].y - all_gameplay_entities->velocities[most_up_gameplay_entity_id].y ));
+              velocity_midpoint  = (all_gameplay_entities->velocities[current_gameplay_entity_id].y + all_gameplay_entities->velocities[next_gameplay_entity_id].y) / 2.0f;
+              collision_velocity = sf::Vector2f(0.0f, velocity_midpoint);
+            }
+            else if (is_x_axis_velocity_collision && is_y_axis_velocity_collision)
+            {
+              // decide who has right away?
+              intersect_time = 0.0f;
+              collision_velocity = sf::Vector2f(0.0f, 0.0f);
+            }
+            else if (is_current_gameplay_entity_stationary && is_next_gameplay_entity_stationary)
+            {
+              intersect_time = 0.0f;
+              collision_velocity = sf::Vector2f(0.0f,0.0f);
             }
             else
             {
-              if (!is_current_gameplay_entity_stationary && !is_next_gameplay_entity_stationary)
-                is_different_axis_velocities = true;
+              // assert error?
+              intersect_time = 0.0f;
+              collision_velocity = sf::Vector2f(0.0f, 0.0f);
             }
 
-            if (!is_different_axis_velocities && (!is_current_gameplay_entity_stationary || !is_next_gameplay_entity_stationary))
+            // should check for weird underflow post_interesect time?
+            // clamp intersect time
+            if ( !(intersect_time > elapsed_frame_time_seconds) )
+            {
+              post_intersect_time = elapsed_frame_time_seconds - intersect_time;
+            }
+            else
+            {
+              intersect_time = elapsed_frame_time_seconds;
+              post_intersect_time = 0.0f;
+            }
+
+            if ( !(is_x_axis_velocity_collision && is_y_axis_velocity_collision) )
             {
               all_gameplay_entities->update_position_by_offset( current_gameplay_entity_id, all_gameplay_entities->velocities[current_gameplay_entity_id] * intersect_time);
               all_gameplay_entities->update_position_by_offset( current_gameplay_entity_id, all_gameplay_entities->velocities[next_gameplay_entity_id]    * intersect_time);
 
-              all_gameplay_entities->update_position_by_offset( current_gameplay_entity_id,  new_velocity * (elapsed_frame_time_seconds - intersect_time) );
-              all_gameplay_entities->update_position_by_offset( next_gameplay_entity_id,     new_velocity * (elapsed_frame_time_seconds - intersect_time) );
+              all_gameplay_entities->update_position_by_offset( current_gameplay_entity_id, collision_velocity * post_intersect_time );
+              all_gameplay_entities->update_position_by_offset( next_gameplay_entity_id,    collision_velocity * post_intersect_time );
             }
             else
             {
