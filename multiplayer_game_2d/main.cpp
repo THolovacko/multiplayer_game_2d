@@ -558,13 +558,13 @@ int main()
 
             if (is_x_axis_velocity_collision && !is_y_axis_velocity_collision)
             {
-              intersect_time     = std::abs(( all_gameplay_entities->collision_vertices[(most_left_gameplay_entity_id * 4) + 1].x - all_gameplay_entities->collision_vertices[most_right_gameplay_entity_id * 4].x) / ( all_gameplay_entities->velocities[most_right_gameplay_entity_id].x - all_gameplay_entities->velocities[most_left_gameplay_entity_id].x ));
+              intersect_time     = ( all_gameplay_entities->collision_vertices[(most_left_gameplay_entity_id * 4) + 1].x - all_gameplay_entities->collision_vertices[most_right_gameplay_entity_id * 4].x) / ( all_gameplay_entities->velocities[most_right_gameplay_entity_id].x - all_gameplay_entities->velocities[most_left_gameplay_entity_id].x );
               velocity_midpoint  = (all_gameplay_entities->velocities[current_gameplay_entity_id].x + all_gameplay_entities->velocities[next_gameplay_entity_id].x) / 2.0f;
               collision_velocity = sf::Vector2f(velocity_midpoint, 0.0f);
             }
             else if (is_y_axis_velocity_collision && !is_x_axis_velocity_collision)
             {
-              intersect_time     = std::abs(( all_gameplay_entities->collision_vertices[(most_up_gameplay_entity_id * 4) + 2].y - all_gameplay_entities->collision_vertices[most_down_gameplay_entity_id * 4].y ) / ( all_gameplay_entities->velocities[most_down_gameplay_entity_id].y - all_gameplay_entities->velocities[most_up_gameplay_entity_id].y ));
+              intersect_time     = ( all_gameplay_entities->collision_vertices[(most_up_gameplay_entity_id * 4) + 2].y - all_gameplay_entities->collision_vertices[most_down_gameplay_entity_id * 4].y ) / ( all_gameplay_entities->velocities[most_down_gameplay_entity_id].y - all_gameplay_entities->velocities[most_up_gameplay_entity_id].y );
               velocity_midpoint  = (all_gameplay_entities->velocities[current_gameplay_entity_id].y + all_gameplay_entities->velocities[next_gameplay_entity_id].y) / 2.0f;
               collision_velocity = sf::Vector2f(0.0f, velocity_midpoint);
             }
@@ -588,16 +588,9 @@ int main()
 
             // should check for weird underflow post_interesect time?
             // clamp intersect time
-            if ( !(intersect_time > elapsed_frame_time_seconds) )
-            {
-              post_intersect_time = elapsed_frame_time_seconds - intersect_time;
-            }
-            else
-            {
-              intersect_time = elapsed_frame_time_seconds;
-              post_intersect_time = 0.0f;
-            }
-
+            
+            post_intersect_time = elapsed_frame_time_seconds - intersect_time;
+            
             if ( !(is_x_axis_velocity_collision && is_y_axis_velocity_collision) )
             {
               all_gameplay_entities->update_position_by_offset( current_gameplay_entity_id, all_gameplay_entities->velocities[current_gameplay_entity_id] * intersect_time);
@@ -651,7 +644,6 @@ int main()
     // draw options if requested
 
     window.display();
-
 
     // handle underflow
     if (elapsed_frame_time_seconds == 0.0f) Sleep(1);
