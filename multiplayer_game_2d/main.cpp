@@ -534,7 +534,8 @@ int main()
           if(is_y_overlap && is_x_overlap)
           {
             // @remember: gameplay entities by design won't be stationary and located in 2 tiles
-            // calculate how long it took to intersect and then apply original velocity for that time
+
+            // calculate how long it took to intersect and apply original velocity for that time, then apply new velocity for remaining time
             //    use equations of motion: gameplay_entity_position(time) = gameplay_entity_position(0) + (velocity * time)
             //    need to solve for time when gameplay_entity_positions are equal to each other
             // if entities have different x/y velocities then only move the entity that has the right of way; the other is treated as running into a wall
@@ -570,7 +571,7 @@ int main()
             }
             else if (is_x_axis_velocity_collision && is_y_axis_velocity_collision)
             {
-              // decide who has right away?
+              // apply normal velocity to right-of-way entity for elapsed_frame_time then apply regular velocity for intersect_time for other
               intersect_time = 0.0f;
               collision_velocity = sf::Vector2f(0.0f, 0.0f);
             }
@@ -586,8 +587,7 @@ int main()
               collision_velocity = sf::Vector2f(0.0f, 0.0f);
             }
 
-            // should check for weird underflow post_interesect time?
-            // clamp intersect time
+            // ! should check for weird underflow post_interesect time or when post_intersect_time is negative?
             
             post_intersect_time = elapsed_frame_time_seconds - intersect_time;
             
@@ -605,7 +605,7 @@ int main()
               // do normal velocity move for entity that does have right of way
             }
 
-            //    set new velocities?
+            //    set new velocities? (or just handle chain collisions?)
             //    commit overlap gameplay event
           }
         }
