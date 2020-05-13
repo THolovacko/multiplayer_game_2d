@@ -323,7 +323,6 @@ int main()
 
 
     // generate walls
-    /*
     for(int i=0; i < test_tile_map->width; ++i)
     {
       test_tile_map->bitmap[i] = static_cast<int>(test_tile_map_bitmap_type::WALL);
@@ -344,9 +343,8 @@ int main()
       test_tile_map->bitmap[(i * test_tile_map->width) + (test_tile_map->width - 1)] = static_cast<int>(test_tile_map_bitmap_type::WALL);
     }
 
-    */
-    //for(int tile_index = (test_tile_map->width * 2); tile_index < test_tile_map->tile_count; tile_index += (test_tile_map->width * 2))
-    for(int tile_index = 0; tile_index < test_tile_map->tile_count; tile_index += (test_tile_map->width * 2))
+    //for(int tile_index = 0; tile_index < test_tile_map->tile_count; tile_index += (test_tile_map->width * 2))
+    for(int tile_index = (test_tile_map->width * 2); tile_index < test_tile_map->tile_count; tile_index += (test_tile_map->width * 2))
     {
       for(int tile_index_offset=0; tile_index_offset < test_tile_map->width; ++tile_index_offset)
       {
@@ -434,11 +432,12 @@ int main()
               if(all_gameplay_entities->velocities[gameplay_entity_id].x > 0.0f)
               {
                 offset_x = test_tile_map->vertex_buffer[( (tile_index+1) * 4)].position.x - all_gameplay_entities->collision_vertices[(gameplay_entity_id * 4) + 1].x;
-                offset_x += -0.01f;
+                offset_x += -0.5f;
               }
               else
               {
                 offset_x = test_tile_map->vertex_buffer[( (tile_index+1) * 4) + 1].position.x - all_gameplay_entities->collision_vertices[(gameplay_entity_id * 4)].x;
+                offset_x += 0.5f;
               }
             }
 
@@ -447,11 +446,12 @@ int main()
               if(all_gameplay_entities->velocities[gameplay_entity_id].y > 0.0f)
               {
                 offset_y = test_tile_map->vertex_buffer[( (tile_index+1) * 4)].position.y - all_gameplay_entities->collision_vertices[(gameplay_entity_id * 4) + 2].y;
-                offset_y += -0.01f;
+                offset_y += -0.5f;
               }
               else
               {
                 offset_y = test_tile_map->vertex_buffer[( (tile_index+1) * 4) + 2].position.y - all_gameplay_entities->collision_vertices[(gameplay_entity_id * 4)].y;
+                offset_y += 0.5f;
               }
             }
 
@@ -597,8 +597,8 @@ int main()
                 float x_intersect_time = ( all_gameplay_entities->collision_vertices[(most_left_gameplay_entity_id * 4) + 1].x - all_gameplay_entities->collision_vertices[most_right_gameplay_entity_id * 4].x) / ( all_gameplay_entities->velocities[most_right_gameplay_entity_id].x - all_gameplay_entities->velocities[most_left_gameplay_entity_id].x );
                 float y_intersect_time = ( all_gameplay_entities->collision_vertices[(most_up_gameplay_entity_id * 4) + 2].y - all_gameplay_entities->collision_vertices[most_down_gameplay_entity_id * 4].y ) / ( all_gameplay_entities->velocities[most_down_gameplay_entity_id].y - all_gameplay_entities->velocities[most_up_gameplay_entity_id].y );
 
-                if(x_intersect_time > elapsed_frame_time_seconds) x_intersect_time *= -1.0f;
-                if(y_intersect_time > elapsed_frame_time_seconds) y_intersect_time *= -1.0f;
+                if (x_intersect_time > elapsed_frame_time_seconds) x_intersect_time *= -1.0f;
+                if (y_intersect_time > elapsed_frame_time_seconds) y_intersect_time *= -1.0f;
 
                 if (x_intersect_time > y_intersect_time)
                 {
@@ -613,7 +613,7 @@ int main()
                   intersect_time = y_intersect_time;
                 }
 
-                collision_velocity = -0.01f * ( all_gameplay_entities->velocities[non_right_of_way_entity_id] / (std::abs(all_gameplay_entities->velocities[non_right_of_way_entity_id].x) + std::abs(all_gameplay_entities->velocities[non_right_of_way_entity_id].y)) );
+                collision_velocity = -0.5f * ( all_gameplay_entities->velocities[non_right_of_way_entity_id] / (std::abs(all_gameplay_entities->velocities[non_right_of_way_entity_id].x) + std::abs(all_gameplay_entities->velocities[non_right_of_way_entity_id].y)) );
               }
               else if (is_current_gameplay_entity_stationary && is_next_gameplay_entity_stationary)
               {
@@ -675,10 +675,11 @@ int main()
 
                 // make entities not overlap
                 all_gameplay_entities->update_position_by_offset( non_right_of_way_entity_id, collision_velocity );
+
+                all_gameplay_entities->velocities[non_right_of_way_entity_id] = collision_velocity;
               }
 
-              //    set new velocities? (or just handle chain collisions?)
-              //    commit overlap gameplay event
+              //  commit overlap gameplay event?
             }
           }
         }
