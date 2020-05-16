@@ -460,23 +460,23 @@ int main()
         int gameplay_entity_id;
         float offset_x;
         float offset_y;
-        std::bitset<MAX_GAMEPLAY_ENTITIES> is_already_corrected;
-        is_already_corrected.reset();
+        std::bitset<MAX_GAMEPLAY_ENTITIES> is_wall_corrected;
+        is_wall_corrected.reset();
 
         for (int tile_index=0; tile_index < test_tile_map->tile_count; ++tile_index)
         {
           if(static_cast<test_tile_map_bitmap_type>(test_tile_map->bitmap[tile_index]) != test_tile_map_bitmap_type::WALL) continue;
 
-          offset_x = 0.0f;
-          offset_y = 0.0f;
           tile_bucket_index_limit = (tile_index + 1) * MAX_COLLISIONS_PER_TILE;
           
           for(int tile_bucket_index = (tile_index * MAX_COLLISIONS_PER_TILE); tile_bucket_index < tile_bucket_index_limit; ++tile_bucket_index)
           {
+            offset_x = 0.0f;
+            offset_y = 0.0f;
             gameplay_entity_id = gameplay_entity_ids_per_tile::tile_buckets[tile_bucket_index];
             
             if (gameplay_entity_id == -1) break;
-            if (is_already_corrected[gameplay_entity_id]) continue;
+            if (is_wall_corrected[gameplay_entity_id]) continue;
 
             if(all_gameplay_entities->velocities[gameplay_entity_id].x)
             {
@@ -510,8 +510,8 @@ int main()
             }
 
             all_gameplay_entities->update_position_by_offset( gameplay_entity_id, sf::Vector2f(offset_x, offset_y) );
-            all_gameplay_entities->velocities[gameplay_entity_id] *= -1.0f;
-            is_already_corrected[gameplay_entity_id] = true;
+            all_gameplay_entities->velocities[gameplay_entity_id] = sf::Vector2f(offset_x, offset_y);
+            is_wall_corrected[gameplay_entity_id] = true;
           }
         }
       }
@@ -620,7 +620,7 @@ int main()
               }
               else if (is_y_axis_velocity_collision && !is_x_axis_velocity_collision)
               {
-                //if(all_gameplay_entities->velocities[most_down_gameplay_entity_id].y == all_gameplay_entities->velocities[most_up_gameplay_entity_id].y) continue;
+                //if (all_gameplay_entities->velocities[most_down_gameplay_entity_id].y == all_gameplay_entities->velocities[most_up_gameplay_entity_id].y) continue;
                 intersect_time     = ( all_gameplay_entities->collision_vertices[(most_up_gameplay_entity_id * 4) + 2].y - all_gameplay_entities->collision_vertices[most_down_gameplay_entity_id * 4].y ) / ( all_gameplay_entities->velocities[most_down_gameplay_entity_id].y - all_gameplay_entities->velocities[most_up_gameplay_entity_id].y );
                 velocity_midpoint  = (all_gameplay_entities->velocities[current_gameplay_entity_id].y + all_gameplay_entities->velocities[next_gameplay_entity_id].y) / 2.0f;
                 collision_velocity = sf::Vector2f(0.0f, velocity_midpoint);
@@ -688,34 +688,46 @@ int main()
                 all_gameplay_entities->update_position_by_offset( next_gameplay_entity_id,    collision_velocity * post_intersect_time );
 
                 // make entities slightly not touch
-                if ( (collision_velocity.x + collision_velocity.y) == 0.0f) continue;
-                sf::Vector2f separate_offset = 0.01f * ( collision_velocity / (collision_velocity.x + collision_velocity.y) );
-
-                if (separate_offset.x)
+                if ( (collision_velocity.x + collision_velocity.y) != 0.0f)
                 {
-                  if (separate_offset.x > 0.0f)
-                  {
-                    all_gameplay_entities->update_position_by_offset( most_right_gameplay_entity_id, separate_offset );
-                  }
-                  else
-                  {
-                    all_gameplay_entities->update_position_by_offset( most_left_gameplay_entity_id, separate_offset );
-                  }
-                }
-                else if (separate_offset.y)
-                {
-                  if (separate_offset.y > 0.0f)
-                  {
-                    all_gameplay_entities->update_position_by_offset( most_down_gameplay_entity_id, separate_offset );
-                  }
-                  else
-                  {
-                    all_gameplay_entities->update_position_by_offset( most_up_gameplay_entity_id, separate_offset );
-                  }
-                }
+                  sf::Vector2f separate_offset = 0.01f * ( collision_velocity / (collision_velocity.x + collision_velocity.y) );
 
-                all_gameplay_entities->velocities[current_gameplay_entity_id] = collision_velocity;
-                all_gameplay_entities->velocities[next_gameplay_entity_id]    = collision_velocity;
+                  if (separate_offset.x)
+                  {
+                    if (separate_offset.x > 0.0f)
+                    {
+                      all_gameplay_entities->update_position_by_offset( most_right_gameplay_entity_id, separate_offset );
+                    }
+                    else
+                    {
+                      all_gameplay_entities->update_position_by_offset( most_left_gameplay_entity_id, separate_offset );
+                    }
+                  }
+                  else if (separate_offset.y)
+                  {
+                    if (separate_offset.y > 0.0f)
+                    {
+                      all_gameplay_entities->update_position_by_offset( most_down_gameplay_entity_id, separate_offset );
+                    }
+                    else
+                    {
+                      all_gameplay_entities->update_position_by_offset( most_up_gameplay_entity_id, separate_offset );
+                    }
+                  }
+                  all_gameplay_entities->velocities[current_gameplay_entity_id] = collision_velocity;
+                  all_gameplay_entities->velocities[next_gameplay_entity_id] = collision_velocity;
+                }
+                else // velocity midpoint is 0
+                {
+                  sf::Vector2f current_separate_offset = -0.01f * ( all_gameplay_entities->velocities[current_gameplay_entity_id] / std::abs(all_gameplay_entities->velocities[current_gameplay_entity_id].x + all_gameplay_entities->velocities[current_gameplay_entity_id].y) );
+                  all_gameplay_entities->update_position_by_offset( current_gameplay_entity_id, current_separate_offset );
+
+                  sf::Vector2f next_separate_offset = -0.01f * ( all_gameplay_entities->velocities[next_gameplay_entity_id] / std::abs(all_gameplay_entities->velocities[next_gameplay_entity_id].x + all_gameplay_entities->velocities[next_gameplay_entity_id].y) );
+                  all_gameplay_entities->update_position_by_offset( next_gameplay_entity_id, next_separate_offset );
+
+                  all_gameplay_entities->velocities[current_gameplay_entity_id] = current_separate_offset;
+                  all_gameplay_entities->velocities[next_gameplay_entity_id]    = next_separate_offset;
+                }
               }
               else
               {
@@ -725,7 +737,7 @@ int main()
                 // make entities not overlap
                 all_gameplay_entities->update_position_by_offset( non_right_of_way_entity_id, collision_velocity );
 
-                all_gameplay_entities->velocities[non_right_of_way_entity_id] *= -1.0f;
+                all_gameplay_entities->velocities[non_right_of_way_entity_id] = collision_velocity;
               }
 
               //  commit overlap gameplay event?
