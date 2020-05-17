@@ -249,7 +249,7 @@ int main()
   all_gameplay_entities->animation_indexes[1] = 0;
   all_gameplay_entities->animation_indexes[2] = 0;
   all_gameplay_entities->velocities[0] = sf::Vector2f(0.0f ,0.0f );
-  all_gameplay_entities->velocities[1] = sf::Vector2f(0.0f, 10.0f);
+  all_gameplay_entities->velocities[1] = sf::Vector2f(50.0f, 0.0f);
   all_gameplay_entities->velocities[2] = sf::Vector2f(0.0f, 0.0f);
   all_gameplay_entities->velocities[3] = sf::Vector2f(0.0f, 0.0f);
   all_gameplay_entities->velocities[4] = sf::Vector2f(25.0f ,0.0f);
@@ -261,7 +261,7 @@ int main()
   all_gameplay_entities->velocities[10] = sf::Vector2f(-100.0f ,0.0f );
   all_gameplay_entities->velocities[11] = sf::Vector2f(0.0f, 100.0f);
   all_gameplay_entities->velocities[12] = sf::Vector2f(0.0f, 100.0f);
-  all_gameplay_entities->velocities[13] = sf::Vector2f(0.0f, 0.0f);
+  all_gameplay_entities->velocities[13] = sf::Vector2f(-50.0f, 0.0f);
   all_gameplay_entities->velocities[14] = sf::Vector2f(25.0f ,0.0f);
 
 
@@ -402,118 +402,39 @@ int main()
 
     test_tile_map->update_tex_coords_from_bitmap();
 
-    // setup of collision update
+    /* collision update loop */
+
     all_gameplay_entities->update_positions_by_velocity(elapsed_frame_time_seconds);
     gameplay_entity_ids_per_tile::update(*test_tile_map, *all_gameplay_entities, gameplay_entity_id_to_tile_bucket_index_of_first_vertex);
+
+    std::bitset<MAX_GAMEPLAY_ENTITIES> is_wall_corrected;
+    is_wall_corrected.reset();
+
+    std::bitset<MAX_GAMEPLAY_ENTITIES> is_right_of_way_corrected;
+    is_right_of_way_corrected.reset();
 
     sf::Vector2f velocity_cache[MAX_GAMEPLAY_ENTITIES];
     for(int i=0; i < MAX_GAMEPLAY_ENTITIES; ++i)
       velocity_cache[i] = all_gameplay_entities->velocities[i];
 
-    // collision update loop
     for (int chain_collision_index=0; chain_collision_index < MAX_CHAIN_COLLISIONS; ++chain_collision_index)
     {
-      // correct gameplay entities that are off the map
+      // handle gameplay entities that are off the map (for now just delete them. decided correcting probably isn't good idea)
       if(gameplay_entity_ids_per_tile::off_map_bitfield.any())
       {
-        float offset_x;
-        float offset_y;
-        bool  need_to_correct_x;
-        bool  need_to_correct_y;
-        int   vertex_index;
-        int   y_index;
-        int   x_index;
-        int   first_vertex_tile_map_index;
-
         for(int gameplay_entity_id=0; gameplay_entity_id < MAX_GAMEPLAY_ENTITIES; ++gameplay_entity_id)
         {
-          if(gameplay_entity_ids_per_tile::off_map_bitfield[gameplay_entity_id] == false) continue;
-
-          vertex_index = gameplay_entity_id * 4;
-
-          y_index = static_cast<int>(all_gameplay_entities->collision_vertices[vertex_index].y / test_tile_map->tile_size_y);
-          x_index = static_cast<int>(all_gameplay_entities->collision_vertices[vertex_index].x / test_tile_map->tile_size_x);
-          first_vertex_tile_map_index = (y_index * test_tile_map->width) + x_index;
-
-          // does top left vertice have negative x or y?
-          offset_x = all_gameplay_entities->collision_vertices[vertex_index].x;
-          offset_y = all_gameplay_entities->collision_vertices[vertex_index].y;
-          need_to_correct_x = offset_x < 0.0f;
-          need_to_correct_y = offset_y < 0.0f;
-
-          all_gameplay_entities->update_position_by_offset(gameplay_entity_id, sf::Vector2f( -1.0f * offset_x * static_cast<float>(need_to_correct_x) , -1.0f * offset_y * static_cast<float>(need_to_correct_y) ));
-
-          // does bottom right vertice have too big x or y?
-          offset_x = all_gameplay_entities->collision_vertices[vertex_index + 2].x - ( (test_tile_map->width  * test_tile_map->tile_size_x) - 1 );
-          offset_y = all_gameplay_entities->collision_vertices[vertex_index + 2].y - ( (test_tile_map->height * test_tile_map->tile_size_y) - 1 );
-          need_to_correct_x = offset_x > 0.0f;
-          need_to_correct_y = offset_y > 0.0f;
-
-          all_gameplay_entities->update_position_by_offset(gameplay_entity_id, sf::Vector2f( -1.0f * offset_x * static_cast<float>(need_to_correct_x) , -1.0f * offset_y * static_cast<float>(need_to_correct_y) ));
-        }
-      }
-
-
-      // correct gameplay entities that are overlapping walls
-      {
-        int tile_bucket_index_limit;
-        int gameplay_entity_id;
-        float offset_x;
-        float offset_y;
-        std::bitset<MAX_GAMEPLAY_ENTITIES> is_wall_corrected;
-        is_wall_corrected.reset();
-
-        for (int tile_index=0; tile_index < test_tile_map->tile_count; ++tile_index)
-        {
-          if(static_cast<test_tile_map_bitmap_type>(test_tile_map->bitmap[tile_index]) != test_tile_map_bitmap_type::WALL) continue;
-
-          tile_bucket_index_limit = (tile_index + 1) * MAX_COLLISIONS_PER_TILE;
-          
-          for(int tile_bucket_index = (tile_index * MAX_COLLISIONS_PER_TILE); tile_bucket_index < tile_bucket_index_limit; ++tile_bucket_index)
+          if(gameplay_entity_ids_per_tile::off_map_bitfield[gameplay_entity_id] == false)
           {
-            offset_x = 0.0f;
-            offset_y = 0.0f;
-            gameplay_entity_id = gameplay_entity_ids_per_tile::tile_buckets[tile_bucket_index];
-            
-            if (gameplay_entity_id == -1) break;
-            if (is_wall_corrected[gameplay_entity_id]) continue;
-
-            if(all_gameplay_entities->velocities[gameplay_entity_id].x)
-            {
-              if(all_gameplay_entities->velocities[gameplay_entity_id].x > 0.0f)
-              {
-                offset_x = test_tile_map->vertex_buffer[( (tile_index+1) * 4)].position.x - all_gameplay_entities->collision_vertices[(gameplay_entity_id * 4) + 1].x;
-                offset_x += -0.01f;
-              }
-              else
-              {
-                offset_x = test_tile_map->vertex_buffer[( (tile_index+1) * 4) + 1].position.x - all_gameplay_entities->collision_vertices[(gameplay_entity_id * 4)].x;
-                offset_x += 0.01f;
-              }
-            }
-            else if(all_gameplay_entities->velocities[gameplay_entity_id].y)
-            {
-              if(all_gameplay_entities->velocities[gameplay_entity_id].y > 0.0f)
-              {
-                offset_y = test_tile_map->vertex_buffer[( (tile_index+1) * 4)].position.y - all_gameplay_entities->collision_vertices[(gameplay_entity_id * 4) + 2].y;
-                offset_y += -0.01f;
-              }
-              else
-              {
-                offset_y = test_tile_map->vertex_buffer[( (tile_index+1) * 4) + 2].position.y - all_gameplay_entities->collision_vertices[(gameplay_entity_id * 4)].y;
-                offset_y += 0.01f;
-              }
-            }
-            else
-            {
-              // !!! assert error gameplay entity in wall has no x or y velocity because even if pushed into a wall it must have had velocity change?
-            }
-
-            all_gameplay_entities->update_position_by_offset( gameplay_entity_id, sf::Vector2f(offset_x, offset_y) );
-            all_gameplay_entities->velocities[gameplay_entity_id] = sf::Vector2f(offset_x, offset_y);
-            is_wall_corrected[gameplay_entity_id] = true;
+            continue;
           }
+          else
+          {
+            all_gameplay_entities->is_garbage_flags[gameplay_entity_id] = true;
+          };
         }
+
+        gameplay_entity_ids_per_tile::update(*test_tile_map, *all_gameplay_entities, gameplay_entity_id_to_tile_bucket_index_of_first_vertex);
       }
 
       //  then handle gameplay_entity overlaps: set velocities, correct overlapping, and commit overlap gameplay_events (game_entities)
@@ -595,8 +516,8 @@ int main()
 
 
               // undo velocity moves
-              all_gameplay_entities->update_position_by_offset(current_gameplay_entity_id, -1.0f * all_gameplay_entities->velocities[current_gameplay_entity_id] * elapsed_frame_time_seconds);
-              all_gameplay_entities->update_position_by_offset(next_gameplay_entity_id,    -1.0f * all_gameplay_entities->velocities[next_gameplay_entity_id]    * elapsed_frame_time_seconds);
+              all_gameplay_entities->update_position_by_offset( current_gameplay_entity_id, -1.0f * all_gameplay_entities->velocities[current_gameplay_entity_id] * elapsed_frame_time_seconds * static_cast<float>(!is_wall_corrected[current_gameplay_entity_id]) * static_cast<float>(!is_right_of_way_corrected[current_gameplay_entity_id]) );
+              all_gameplay_entities->update_position_by_offset( next_gameplay_entity_id,    -1.0f * all_gameplay_entities->velocities[next_gameplay_entity_id]    * elapsed_frame_time_seconds * static_cast<float>(!is_wall_corrected[next_gameplay_entity_id])    * static_cast<float>(!is_right_of_way_corrected[next_gameplay_entity_id])    );
 
               bool is_current_gameplay_entity_stationary = (all_gameplay_entities->velocities[current_gameplay_entity_id].x == 0.0f) && (all_gameplay_entities->velocities[current_gameplay_entity_id].y == 0.0f);
               bool is_next_gameplay_entity_stationary    = (all_gameplay_entities->velocities[next_gameplay_entity_id].x    == 0.0f) && (all_gameplay_entities->velocities[next_gameplay_entity_id].y    == 0.0f);
@@ -677,7 +598,7 @@ int main()
               post_intersect_time = elapsed_frame_time_seconds - intersect_time;
 
               // !!! change these for asserts
-              if( (post_intersect_time > elapsed_frame_time_seconds) || (post_intersect_time < 0.0f) ) std::cout << "bad post_intersect_time: " << post_intersect_time << std::endl;
+              //if( (post_intersect_time > elapsed_frame_time_seconds) || (post_intersect_time < 0.0f) ) std::cout << "bad post_intersect_time: " << post_intersect_time << std::endl;
               
               if ( !(is_x_axis_velocity_collision && is_y_axis_velocity_collision) )
               {
@@ -725,8 +646,10 @@ int main()
                   sf::Vector2f next_separate_offset = -0.01f * ( all_gameplay_entities->velocities[next_gameplay_entity_id] / std::abs(all_gameplay_entities->velocities[next_gameplay_entity_id].x + all_gameplay_entities->velocities[next_gameplay_entity_id].y) );
                   all_gameplay_entities->update_position_by_offset( next_gameplay_entity_id, next_separate_offset );
 
-                  all_gameplay_entities->velocities[current_gameplay_entity_id] = current_separate_offset;
-                  all_gameplay_entities->velocities[next_gameplay_entity_id]    = next_separate_offset;
+                  //all_gameplay_entities->velocities[current_gameplay_entity_id] = (-1.0f * all_gameplay_entities->velocities[current_gameplay_entity_id]) + current_separate_offset;
+                  //all_gameplay_entities->velocities[next_gameplay_entity_id]    = (-1.0f * all_gameplay_entities->velocities[next_gameplay_entity_id]) + next_separate_offset;
+                  //is_right_of_way_corrected[current_gameplay_entity_id] = true;
+                  //is_right_of_way_corrected[next_gameplay_entity_id]    = true;
                 }
               }
               else
@@ -737,11 +660,74 @@ int main()
                 // make entities not overlap
                 all_gameplay_entities->update_position_by_offset( non_right_of_way_entity_id, collision_velocity );
 
-                all_gameplay_entities->velocities[non_right_of_way_entity_id] = collision_velocity;
+                all_gameplay_entities->velocities[non_right_of_way_entity_id] = (-1.0f * all_gameplay_entities->velocities[non_right_of_way_entity_id]) + collision_velocity + (-1.0f * all_gameplay_entities->velocities[non_right_of_way_entity_id] * intersect_time);
+                is_right_of_way_corrected[non_right_of_way_entity_id] = true;
               }
 
               //  commit overlap gameplay event?
             }
+          }
+        }
+      }
+
+      gameplay_entity_ids_per_tile::update(*test_tile_map, *all_gameplay_entities, gameplay_entity_id_to_tile_bucket_index_of_first_vertex);
+
+      // correct gameplay entities that are overlapping walls
+      {
+        int tile_bucket_index_limit;
+        int gameplay_entity_id;
+        float offset_x;
+        float offset_y;
+
+        for (int tile_index=0; tile_index < test_tile_map->tile_count; ++tile_index)
+        {
+          if(static_cast<test_tile_map_bitmap_type>(test_tile_map->bitmap[tile_index]) != test_tile_map_bitmap_type::WALL) continue;
+
+          tile_bucket_index_limit = (tile_index + 1) * MAX_COLLISIONS_PER_TILE;
+          
+          for(int tile_bucket_index = (tile_index * MAX_COLLISIONS_PER_TILE); tile_bucket_index < tile_bucket_index_limit; ++tile_bucket_index)
+          {
+            offset_x = 0.0f;
+            offset_y = 0.0f;
+            gameplay_entity_id = gameplay_entity_ids_per_tile::tile_buckets[tile_bucket_index];
+            
+            if (gameplay_entity_id == -1) break;
+            if (is_wall_corrected[gameplay_entity_id]) continue;
+
+            if(all_gameplay_entities->velocities[gameplay_entity_id].x)
+            {
+              if(all_gameplay_entities->velocities[gameplay_entity_id].x > 0.0f)
+              {
+                offset_x = test_tile_map->vertex_buffer[( (tile_index+1) * 4)].position.x - all_gameplay_entities->collision_vertices[(gameplay_entity_id * 4) + 1].x;
+                offset_x += -0.01f;
+              }
+              else
+              {
+                offset_x = test_tile_map->vertex_buffer[( (tile_index+1) * 4) + 1].position.x - all_gameplay_entities->collision_vertices[(gameplay_entity_id * 4)].x;
+                offset_x += 0.01f;
+              }
+            }
+            else if(all_gameplay_entities->velocities[gameplay_entity_id].y)
+            {
+              if(all_gameplay_entities->velocities[gameplay_entity_id].y > 0.0f)
+              {
+                offset_y = test_tile_map->vertex_buffer[( (tile_index+1) * 4)].position.y - all_gameplay_entities->collision_vertices[(gameplay_entity_id * 4) + 2].y;
+                offset_y += -0.01f;
+              }
+              else
+              {
+                offset_y = test_tile_map->vertex_buffer[( (tile_index+1) * 4) + 2].position.y - all_gameplay_entities->collision_vertices[(gameplay_entity_id * 4)].y;
+                offset_y += 0.01f;
+              }
+            }
+            else
+            {
+              // !!! assert error gameplay entity in wall has no x or y velocity because even if pushed into a wall it must have had velocity change?
+            }
+
+            all_gameplay_entities->update_position_by_offset( gameplay_entity_id, sf::Vector2f(offset_x, offset_y) );
+            all_gameplay_entities->velocities[gameplay_entity_id] = (-1.0f * all_gameplay_entities->velocities[gameplay_entity_id]) + sf::Vector2f(offset_x, offset_y);
+            is_wall_corrected[gameplay_entity_id] = true;
           }
         }
       }
