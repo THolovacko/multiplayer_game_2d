@@ -598,7 +598,7 @@ int main()
               post_intersect_time = elapsed_frame_time_seconds - intersect_time;
 
               // !!! change these for asserts
-              //if( (post_intersect_time > elapsed_frame_time_seconds) || (post_intersect_time < 0.0f) ) std::cout << "bad post_intersect_time: " << post_intersect_time << std::endl;
+              if( (post_intersect_time > elapsed_frame_time_seconds) || (post_intersect_time < 0.0f) ) std::cout << "bad post_intersect_time: " << post_intersect_time << std::endl;
               
               if ( !(is_x_axis_velocity_collision && is_y_axis_velocity_collision) )
               {
