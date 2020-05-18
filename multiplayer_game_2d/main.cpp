@@ -279,10 +279,10 @@ int main()
   for(int i=0; i < all_gameplay_entities->vertex_count; i+=4)
   {
     // the tile_size - 0.01f is to currently handle overlapping tile vertices
-    all_gameplay_entities->collision_vertices[i]   = sf::Vector2f(25.1f, 0.0f);
-    all_gameplay_entities->collision_vertices[i+1] = sf::Vector2f(test_tile_map->tile_size_x - 25.1f, 0.0f);
-    all_gameplay_entities->collision_vertices[i+2] = sf::Vector2f(test_tile_map->tile_size_x - 25.1f, test_tile_map->tile_size_y - 25.1f);
-    all_gameplay_entities->collision_vertices[i+3] = sf::Vector2f(25.1f, test_tile_map->tile_size_y - 25.1f);
+    all_gameplay_entities->collision_vertices[i]   = sf::Vector2f(0.05f, 0.0f);
+    all_gameplay_entities->collision_vertices[i+1] = sf::Vector2f(test_tile_map->tile_size_x - 0.05f, 0.0f);
+    all_gameplay_entities->collision_vertices[i+2] = sf::Vector2f(test_tile_map->tile_size_x - 0.05f, test_tile_map->tile_size_y - 0.05f);
+    all_gameplay_entities->collision_vertices[i+3] = sf::Vector2f(0.05f, test_tile_map->tile_size_y - 0.05f);
   }
 
   all_gameplay_entities->update_position_by_offset( 0, sf::Vector2f(test_tile_map->tile_size_x * 2, 3 * test_tile_map->tile_size_y) );
@@ -594,11 +594,13 @@ int main()
                 collision_velocity = sf::Vector2f(0.0f,0.0f);
               }
 
+
               // !!! should check for weird underflow post_interesect time or when post_intersect_time is negative?
               post_intersect_time = elapsed_frame_time_seconds - intersect_time;
 
               // !!! change these for asserts
-              if( (post_intersect_time > elapsed_frame_time_seconds) || (post_intersect_time < 0.0f) ) std::cout << "bad post_intersect_time: " << post_intersect_time << std::endl;
+              //if( (post_intersect_time > elapsed_frame_time_seconds) || (post_intersect_time < 0.0f) )
+              //    std::cout << "bad post_intersect_time: " << post_intersect_time << std::endl;
               
               if ( !(is_x_axis_velocity_collision && is_y_axis_velocity_collision) )
               {
@@ -655,13 +657,13 @@ int main()
               else
               {
                 all_gameplay_entities->update_position_by_offset( right_of_way_entity_id, all_gameplay_entities->velocities[right_of_way_entity_id] * elapsed_frame_time_seconds);
-                all_gameplay_entities->update_position_by_offset( non_right_of_way_entity_id, all_gameplay_entities->velocities[non_right_of_way_entity_id] * intersect_time );
 
-                // make entities not overlap
-                all_gameplay_entities->update_position_by_offset( non_right_of_way_entity_id, collision_velocity );
+                all_gameplay_entities->velocities[non_right_of_way_entity_id] = (-2.0f * all_gameplay_entities->velocities[non_right_of_way_entity_id]);
 
-                all_gameplay_entities->velocities[non_right_of_way_entity_id] = (-1.0f * all_gameplay_entities->velocities[non_right_of_way_entity_id]) + collision_velocity + (-1.0f * all_gameplay_entities->velocities[non_right_of_way_entity_id] * intersect_time);
+                all_gameplay_entities->update_position_by_offset( non_right_of_way_entity_id, all_gameplay_entities->velocities[non_right_of_way_entity_id] * elapsed_frame_time_seconds );                
                 is_right_of_way_corrected[non_right_of_way_entity_id] = true;
+
+                is_wall_corrected[right_of_way_entity_id] = true;
               }
 
               //  commit overlap gameplay event?
