@@ -279,10 +279,10 @@ int main()
   for(int i=0; i < all_gameplay_entities->vertex_count; i+=4)
   {
     // the tile_size - 0.01f is to currently handle overlapping tile vertices
-    all_gameplay_entities->collision_vertices[i]   = sf::Vector2f(0.05f, 0.0f);
-    all_gameplay_entities->collision_vertices[i+1] = sf::Vector2f(test_tile_map->tile_size_x - 0.05f, 0.0f);
-    all_gameplay_entities->collision_vertices[i+2] = sf::Vector2f(test_tile_map->tile_size_x - 0.05f, test_tile_map->tile_size_y - 0.05f);
-    all_gameplay_entities->collision_vertices[i+3] = sf::Vector2f(0.05f, test_tile_map->tile_size_y - 0.05f);
+    all_gameplay_entities->collision_vertices[i]   = sf::Vector2f(10.0f, 0.0f);
+    all_gameplay_entities->collision_vertices[i+1] = sf::Vector2f(test_tile_map->tile_size_x - 10.0f, 0.0f);
+    all_gameplay_entities->collision_vertices[i+2] = sf::Vector2f(test_tile_map->tile_size_x - 10.0f, test_tile_map->tile_size_y - 10.0f);
+    all_gameplay_entities->collision_vertices[i+3] = sf::Vector2f(10.0f, test_tile_map->tile_size_y - 10.0f);
   }
 
   all_gameplay_entities->update_position_by_offset( 0, sf::Vector2f(test_tile_map->tile_size_x * 2, 3 * test_tile_map->tile_size_y) );
