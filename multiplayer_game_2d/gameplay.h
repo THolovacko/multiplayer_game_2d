@@ -493,4 +493,14 @@ struct gameplay_entity_ids_per_tile
 }; // gameplay_entity_ids_per_tile
 
 
+/* collision data */
+struct generate_collision_lines_input
+{
+  sf::Vector2f collision_vertices[4];
+  sf::Vector2f velocity;
+};
 
+struct collision_line
+{
+  sf::Vector2f vertices[2];
+};

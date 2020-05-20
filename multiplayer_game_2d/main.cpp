@@ -243,20 +243,29 @@ int main()
 
     tile_to_gameplay_entities->update(*test_tile_map, *all_gameplay_entities, gameplay_entity_id_to_tile_bucket_index_of_first_vertex);
     sf::Vector2f velocity_cache[MAX_GAMEPLAY_ENTITIES];
-    for(int i=0; i < MAX_GAMEPLAY_ENTITIES; ++i)
-      velocity_cache[i] = all_gameplay_entities->velocities[i];
+    memcpy(&velocity_cache, all_gameplay_entities->velocities, sizeof(all_gameplay_entities->velocities));
 
 
-/*
     // generate collision lines| input: {entity id, 4 collision vertices, velocity}[entity_count] => output: {entity_id, 2 collision_line_vertices}[entity_count * 4]
-    for (int collision_vertex_index=0; collision_vertex_index < MAX_GAMEPLAY_ENTITIES; ++collision_vertex_index)
+
+    // create and fill input
+    generate_collision_lines_input all_collision_line_input[MAX_GAMEPLAY_ENTITIES];
+    for(int i=0; i < MAX_GAMEPLAY_ENTITIES; ++i)
     {
-      all_gameplay_entities->collision_vertices[collision_vertex_index]
+      all_collision_line_input[i].velocity = all_gameplay_entities->velocities[i];
+
+      all_collision_line_input[i].collision_vertices[0] = all_gameplay_entities->collision_vertices[(i*4) + 0];
+      all_collision_line_input[i].collision_vertices[1] = all_gameplay_entities->collision_vertices[(i*4) + 1];
+      all_collision_line_input[i].collision_vertices[2] = all_gameplay_entities->collision_vertices[(i*4) + 2];
+      all_collision_line_input[i].collision_vertices[3] = all_gameplay_entities->collision_vertices[(i*4) + 3];
     }
-*/
 
-    
+    // create and fill output
+    collision_line all_collision_lines[MAX_GAMEPLAY_ENTITIES * 4];
 
+    // use velocity to decide endpoint
+    // copy startpoint
+    // set endpoint to endpoint + velocity * elapsed_frame_time_seconds
 
 
 
