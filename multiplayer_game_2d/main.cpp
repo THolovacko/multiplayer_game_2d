@@ -9,6 +9,15 @@
 #pragma warning(disable : 26812)
 
 
+#define TILE_MAP_WIDTH              17
+#define TILE_MAP_HEIGHT             11
+#define TILE_MAP_COUNT              (TILE_MAP_WIDTH * TILE_MAP_HEIGHT)
+#define MAX_GAMEPLAY_ENTITIES       TILE_MAP_COUNT
+#define TILE_MAP_TEXTURE_SIDE_SIZE  64                                  // in pixels
+#define MAX_COLLISIONS_PER_TILE     5                                   // potential game objects (collisions) in an single tile
+#define MAX_CHAIN_COLLISIONS        (2 * TILE_MAP_WIDTH)
+
+
 
 int main()
 {
@@ -27,7 +36,7 @@ int main()
   tile_map<TILE_MAP_WIDTH,TILE_MAP_HEIGHT>* test_tile_map = new tile_map<TILE_MAP_WIDTH,TILE_MAP_HEIGHT>("Assets/Images/test_tile_map.png", (float) window_size.x, (float) window_size.y, TILE_MAP_TEXTURE_SIDE_SIZE);
   gameplay_entities<MAX_GAMEPLAY_ENTITIES>* all_gameplay_entities = new gameplay_entities<MAX_GAMEPLAY_ENTITIES>("Assets/Images/gameplay_entities.png", TILE_MAP_TEXTURE_SIDE_SIZE * 3); // need to be able to handle a single gameplay entity per tile
   int gameplay_entity_id_to_tile_bucket_index_of_first_vertex[MAX_GAMEPLAY_ENTITIES];
-  gameplay_entity_ids_per_tile::update(*test_tile_map, *all_gameplay_entities, gameplay_entity_id_to_tile_bucket_index_of_first_vertex); // initialize
+  gameplay_entity_ids_per_tile<TILE_MAP_WIDTH,TILE_MAP_HEIGHT,MAX_GAMEPLAY_ENTITIES,MAX_COLLISIONS_PER_TILE>* tile_to_gameplay_entities = new gameplay_entity_ids_per_tile<TILE_MAP_WIDTH,TILE_MAP_HEIGHT,MAX_GAMEPLAY_ENTITIES,MAX_COLLISIONS_PER_TILE>();
 
   #ifdef _DEBUG
     bool show_debug_data = true;
@@ -182,7 +191,7 @@ int main()
 
               #ifdef _DEBUG
                 if ( window_event.key.code == sf::Keyboard::D ) show_debug_data = !show_debug_data;
-                //if ( window_event.key.code == sf::Keyboard::P ) gameplay_entity_ids_per_tile::print_tile_buckets();
+                //if ( window_event.key.code == sf::Keyboard::P ) tile_to_gameplay_entities->print_tile_buckets();
               #endif
 
               break;
@@ -232,7 +241,7 @@ int main()
 
     /* collision update loop */
 
-    gameplay_entity_ids_per_tile::update(*test_tile_map, *all_gameplay_entities, gameplay_entity_id_to_tile_bucket_index_of_first_vertex);
+    tile_to_gameplay_entities->update(*test_tile_map, *all_gameplay_entities, gameplay_entity_id_to_tile_bucket_index_of_first_vertex);
     sf::Vector2f velocity_cache[MAX_GAMEPLAY_ENTITIES];
     for(int i=0; i < MAX_GAMEPLAY_ENTITIES; ++i)
       velocity_cache[i] = all_gameplay_entities->velocities[i];

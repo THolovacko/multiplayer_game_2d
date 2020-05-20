@@ -3,14 +3,6 @@
 #include <SFML/Graphics.hpp>
 #include <bitset>
 
-#define TILE_MAP_WIDTH              17
-#define TILE_MAP_HEIGHT             11
-#define TILE_MAP_COUNT              (TILE_MAP_WIDTH * TILE_MAP_HEIGHT)
-#define MAX_GAMEPLAY_ENTITIES       TILE_MAP_COUNT
-#define TILE_MAP_TEXTURE_SIDE_SIZE  64                                  // in pixels
-#define MAX_COLLISIONS_PER_TILE     5                                   // potential game objects (collisions) in an single tile
-#define MAX_CHAIN_COLLISIONS        (2 * TILE_MAP_WIDTH)
-
 
 enum class gameplay_entity_type : int  // these are also the sprite sheet indexes
 {
@@ -335,27 +327,22 @@ struct tile_map
 };
 
 
-
-namespace gameplay_entity_ids_per_tile
+template<int p_tile_map_width, int p_tile_map_height, int p_max_gameplay_entities, int p_max_collisions_per_tile>
+struct gameplay_entity_ids_per_tile
 {
   // @remember: the second vertex in tile is not considered overlapping the first vertex in the next tile; the same goes for the 3rd vertex of a tile not sharing position of the 4th vertex of the next tile
   // @remember:     ex) if the position of a gameplay vertex is same position as top-left vertex in tile, it is considered in that tile and not also in the previous tile
 
-  int current_tile_index;
-  int current_tile_bucket_index;
-  int current_gameplay_entity_id;
-  int current_collision_vertex;
-  int current_y_index;
-  int current_x_index;
-  int current_max_tile_bucket_index_limit;
-  int current_potential_bucket_indexes[4];
-  int current_gameplay_entity_id_bucket_index_limit;
+  int tile_buckets[p_max_collisions_per_tile * p_max_gameplay_entities];
+  std::bitset<p_max_gameplay_entities> off_map_bitfield;  // gameplay entity is partially or fully off the tile map
 
-  int tile_buckets[MAX_COLLISIONS_PER_TILE * MAX_GAMEPLAY_ENTITIES];
-  std::bitset<MAX_GAMEPLAY_ENTITIES> off_map_bitfield;  // gameplay entity is partially or fully off the tile map
+  gameplay_entity_ids_per_tile()
+  {
+    memset(tile_buckets, -1, sizeof(tile_buckets));
+    off_map_bitfield.reset();
+  }
 
-
-  inline void update(const tile_map<TILE_MAP_WIDTH,TILE_MAP_HEIGHT>& p_tile_map, const gameplay_entities<MAX_GAMEPLAY_ENTITIES>& p_game_entities, int (&p_gameplay_entity_id_to_tile_bucket_index_of_first_vertex)[MAX_GAMEPLAY_ENTITIES])
+  inline void update(const tile_map<p_tile_map_width, p_tile_map_height>& p_tile_map, const gameplay_entities<p_max_gameplay_entities>& p_game_entities, int (&p_gameplay_entity_id_to_tile_bucket_index_of_first_vertex)[p_max_gameplay_entities])
   {
     memset(tile_buckets, -1, sizeof(tile_buckets));
     memset(p_gameplay_entity_id_to_tile_bucket_index_of_first_vertex, -1, sizeof(p_gameplay_entity_id_to_tile_bucket_index_of_first_vertex));
@@ -381,8 +368,8 @@ namespace gameplay_entity_ids_per_tile
       current_x_index = static_cast<int>(p_game_entities.collision_vertices[current_collision_vertex].x / p_tile_map.tile_size_x);
 
       current_tile_index = (current_y_index * p_tile_map.width) + current_x_index;
-      current_tile_bucket_index = current_tile_index * MAX_COLLISIONS_PER_TILE;
-      current_max_tile_bucket_index_limit = current_tile_bucket_index + MAX_COLLISIONS_PER_TILE;
+      current_tile_bucket_index = current_tile_index * p_max_collisions_per_tile;
+      current_max_tile_bucket_index_limit = current_tile_bucket_index + p_max_collisions_per_tile;
 
       if( (current_collision_vertex % 4) == 0 ) // checking if top-left vertex
       {
@@ -399,19 +386,19 @@ namespace gameplay_entity_ids_per_tile
 
   }
 
-  inline void update(const tile_map<TILE_MAP_WIDTH,TILE_MAP_HEIGHT>& p_tile_map, const gameplay_entities<MAX_GAMEPLAY_ENTITIES>& p_game_entities, int (&p_gameplay_entity_id_to_tile_bucket_index_of_first_vertex)[MAX_GAMEPLAY_ENTITIES], const int target_gameplay_entity_id, const int first_vertex_bucket_index)
+  inline void update(const tile_map<p_tile_map_width,p_tile_map_height>& p_tile_map, const gameplay_entities<p_max_gameplay_entities>& p_game_entities, int (&p_gameplay_entity_id_to_tile_bucket_index_of_first_vertex)[p_max_gameplay_entities], const int target_gameplay_entity_id, const int first_vertex_bucket_index)
   {
     current_potential_bucket_indexes[0] = first_vertex_bucket_index;
-    current_potential_bucket_indexes[1] = first_vertex_bucket_index + MAX_COLLISIONS_PER_TILE;
-    current_potential_bucket_indexes[2] = current_potential_bucket_indexes[1] + (MAX_COLLISIONS_PER_TILE * TILE_MAP_WIDTH);
-    current_potential_bucket_indexes[3] = current_potential_bucket_indexes[2] - MAX_COLLISIONS_PER_TILE;
+    current_potential_bucket_indexes[1] = first_vertex_bucket_index + p_max_collisions_per_tile;
+    current_potential_bucket_indexes[2] = current_potential_bucket_indexes[1] + (p_max_collisions_per_tile * p_tile_map_width);
+    current_potential_bucket_indexes[3] = current_potential_bucket_indexes[2] - p_max_collisions_per_tile;
 
     for(auto& potential_vertex_bucket_index : current_potential_bucket_indexes)
     {
       // remove and re-sort target target_gameplay_entity_id in bucket index and then the other potential buckets
-      if (potential_vertex_bucket_index <= ( (MAX_COLLISIONS_PER_TILE * p_tile_map.tile_count) - MAX_COLLISIONS_PER_TILE ) )
+      if (potential_vertex_bucket_index <= ( (p_max_collisions_per_tile * p_tile_map.tile_count) - p_max_collisions_per_tile ) )
       {
-        current_gameplay_entity_id_bucket_index_limit = potential_vertex_bucket_index + MAX_COLLISIONS_PER_TILE;
+        current_gameplay_entity_id_bucket_index_limit = potential_vertex_bucket_index + p_max_collisions_per_tile;
 
         // find bucket with target target_gameplay_entity_id then swap until end of bucket
         for(current_tile_bucket_index=potential_vertex_bucket_index; current_tile_bucket_index < current_gameplay_entity_id_bucket_index_limit; ++current_tile_bucket_index)
@@ -457,8 +444,8 @@ namespace gameplay_entity_ids_per_tile
       current_x_index = static_cast<int>(p_game_entities.collision_vertices[current_collision_vertex].x / p_tile_map.tile_size_x);
 
       current_tile_index = (current_y_index * p_tile_map.width) + current_x_index;
-      current_tile_bucket_index = current_tile_index * MAX_COLLISIONS_PER_TILE;
-      current_max_tile_bucket_index_limit = current_tile_bucket_index + MAX_COLLISIONS_PER_TILE;
+      current_tile_bucket_index = current_tile_index * p_max_collisions_per_tile;
+      current_max_tile_bucket_index_limit = current_tile_bucket_index + p_max_collisions_per_tile;
 
       if( (current_collision_vertex % 4) == 0 ) // checking if top-left vertex
       {
@@ -478,11 +465,11 @@ namespace gameplay_entity_ids_per_tile
     inline void print_tile_buckets()
     {
       std::cout << "\n";
-      for(int i=0; i < MAX_COLLISIONS_PER_TILE * MAX_GAMEPLAY_ENTITIES; i+= MAX_COLLISIONS_PER_TILE)
+      for(int i=0; i < p_max_collisions_per_tile * p_max_gameplay_entities; i+= p_max_collisions_per_tile)
       {
-        std::cout << "Tile index: " << i/MAX_COLLISIONS_PER_TILE  << std::endl;
+        std::cout << "Tile index: " << i/p_max_collisions_per_tile  << std::endl;
 
-        for(int collision_index=0; collision_index < MAX_COLLISIONS_PER_TILE; ++collision_index)
+        for(int collision_index=0; collision_index < p_max_collisions_per_tile; ++collision_index)
         {
           int entity_id = tile_buckets[i + collision_index];
           //if (entity_id == -1) continue;
@@ -493,7 +480,17 @@ namespace gameplay_entity_ids_per_tile
     }
   #endif
 
-} // gameplay_entity_ids_per_tile
+  private:
+    int current_tile_index;
+    int current_tile_bucket_index;
+    int current_gameplay_entity_id;
+    int current_collision_vertex;
+    int current_y_index;
+    int current_x_index;
+    int current_max_tile_bucket_index_limit;
+    int current_potential_bucket_indexes[4];
+    int current_gameplay_entity_id_bucket_index_limit;
+}; // gameplay_entity_ids_per_tile
 
 
 
