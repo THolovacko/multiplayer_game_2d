@@ -246,10 +246,8 @@ int main()
     memcpy(&velocity_cache, all_gameplay_entities->velocities, sizeof(all_gameplay_entities->velocities));
 
 
-    // generate collision lines| input: {entity id, 4 collision vertices, velocity}[entity_count] => output: {entity_id, 2 collision_line_vertices}[entity_count * 4]
-
-    // create and fill input
-    generate_collision_lines_input all_collision_line_input[MAX_GAMEPLAY_ENTITIES];
+    float timestep = elapsed_frame_time_seconds;
+    generate_collision_line_input* const all_collision_line_input = new generate_collision_line_input[MAX_GAMEPLAY_ENTITIES];
     for(int i=0; i < MAX_GAMEPLAY_ENTITIES; ++i)
     {
       all_collision_line_input[i].velocity = all_gameplay_entities->velocities[i];
@@ -260,17 +258,9 @@ int main()
       all_collision_line_input[i].collision_vertices[3] = all_gameplay_entities->collision_vertices[(i*4) + 3];
     }
 
-    // create and fill output
-    collision_line all_collision_lines[MAX_GAMEPLAY_ENTITIES * 4];
+    collision_line* const all_collision_lines = new collision_line[MAX_GAMEPLAY_ENTITIES * 4]();
 
-    // use velocity to decide endpoint
-    // copy startpoint
-    // set endpoint to endpoint + velocity * elapsed_frame_time_seconds
-
-
-
-
-
+    generate_collision_lines(all_collision_line_input, all_collision_lines, timestep, MAX_GAMEPLAY_ENTITIES);
 
 
 

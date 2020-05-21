@@ -4,6 +4,7 @@
 #include <bitset>
 
 
+/* gameplay_entity stuff */
 enum class gameplay_entity_type : int  // these are also the sprite sheet indexes
 {
   NONE  = 0,
@@ -211,6 +212,7 @@ struct gameplay_entities
 
 
 
+/* tile_map stuff */
 enum class test_tile_map_bitmap_type : int // these are also the sprite sheet indexes
 {
   NONE = 0,
@@ -327,6 +329,9 @@ struct tile_map
 };
 
 
+
+
+/* collision stuff */
 template<int p_tile_map_width, int p_tile_map_height, int p_max_gameplay_entities, int p_max_collisions_per_tile>
 struct gameplay_entity_ids_per_tile
 {
@@ -493,8 +498,7 @@ struct gameplay_entity_ids_per_tile
 }; // gameplay_entity_ids_per_tile
 
 
-/* collision data */
-struct generate_collision_lines_input
+struct generate_collision_line_input
 {
   sf::Vector2f collision_vertices[4];
   sf::Vector2f velocity;
@@ -504,3 +508,32 @@ struct collision_line
 {
   sf::Vector2f vertices[2];
 };
+
+void generate_collision_lines(const generate_collision_line_input* const all_collision_line_input, collision_line* const all_collision_lines, const float timestep, const int max_gameplay_entity_size)
+{
+  // use velocity to decide changing vertex
+  // set changing vertex to changing vertex + timestep
+  // copy other vertex
+
+  for(int input_index=0,output_index=0; input_index < max_gameplay_entity_size; ++input_index, output_index+=4)
+  {
+    // top left --- top right
+    all_collision_lines[output_index].vertices[0] = all_collision_line_input[input_index].collision_vertices[0] + ( (all_collision_line_input->velocity * timestep) * static_cast<float>(all_collision_line_input->velocity.y < 0.0f) );
+    all_collision_lines[output_index].vertices[1] = all_collision_line_input[input_index].collision_vertices[1] + ( (all_collision_line_input->velocity * timestep) * static_cast<float>(all_collision_line_input->velocity.y < 0.0f) );
+
+    // top right --- bottom right
+    all_collision_lines[output_index+1].vertices[0] = all_collision_line_input[input_index].collision_vertices[1] + ( (all_collision_line_input->velocity * timestep) * static_cast<float>(all_collision_line_input->velocity.x > 0.0f) );
+    all_collision_lines[output_index+1].vertices[1] = all_collision_line_input[input_index].collision_vertices[2] + ( (all_collision_line_input->velocity * timestep) * static_cast<float>(all_collision_line_input->velocity.x > 0.0f) );
+
+    // bottom right --- bottom left
+    all_collision_lines[output_index+2].vertices[0] = all_collision_line_input[input_index].collision_vertices[2] + ( (all_collision_line_input->velocity * timestep) * static_cast<float>(all_collision_line_input->velocity.y > 0.0f) );
+    all_collision_lines[output_index+2].vertices[1] = all_collision_line_input[input_index].collision_vertices[3] + ( (all_collision_line_input->velocity * timestep) * static_cast<float>(all_collision_line_input->velocity.y > 0.0f) );
+
+    // bottom left --- top left
+    all_collision_lines[output_index+3].vertices[0] = all_collision_line_input[input_index].collision_vertices[3] + ( (all_collision_line_input->velocity * timestep) * static_cast<float>(all_collision_line_input->velocity.x < 0.0f) );
+    all_collision_lines[output_index+3].vertices[1] = all_collision_line_input[input_index].collision_vertices[0] + ( (all_collision_line_input->velocity * timestep) * static_cast<float>(all_collision_line_input->velocity.x < 0.0f) );
+  }
+}
+
+
+
