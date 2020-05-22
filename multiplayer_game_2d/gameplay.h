@@ -497,7 +497,6 @@ struct gameplay_entity_ids_per_tile
     int current_gameplay_entity_id_bucket_index_limit;
 }; // gameplay_entity_ids_per_tile
 
-
 struct generate_collision_line_input
 {
   sf::Vector2f collision_vertices[4];
@@ -509,13 +508,13 @@ struct collision_line
   sf::Vector2f vertices[2];
 };
 
-void generate_collision_lines(const generate_collision_line_input* const all_collision_line_input, collision_line* const all_collision_lines, const float timestep, const int max_gameplay_entity_size)
+void generate_collision_lines(const generate_collision_line_input* const all_collision_line_input, collision_line* const all_collision_lines, const float timestep, const int input_size)
 {
   // use velocity to decide changing vertex
   // set changing vertex to changing vertex + timestep
   // copy other vertex
 
-  for(int input_index=0,output_index=0; input_index < max_gameplay_entity_size; ++input_index, output_index+=4)
+  for(int input_index=0,output_index=0; input_index < input_size; ++input_index, output_index+=4)
   {
     // top left --- top right
     all_collision_lines[output_index].vertices[0] = all_collision_line_input[input_index].collision_vertices[0] + ( (all_collision_line_input->velocity * timestep) * static_cast<float>(all_collision_line_input->velocity.y < 0.0f) );

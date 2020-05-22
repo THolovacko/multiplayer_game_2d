@@ -127,13 +127,13 @@ int main()
   all_gameplay_entities->update_position_by_offset( 2, sf::Vector2f(test_tile_map->tile_size_x * 6, 7 * test_tile_map->tile_size_y) );
   all_gameplay_entities->update_position_by_offset( 3, sf::Vector2f(test_tile_map->tile_size_x * 8, 3 * test_tile_map->tile_size_y) );
   all_gameplay_entities->update_position_by_offset( 4, sf::Vector2f(test_tile_map->tile_size_x * 3, 7 * test_tile_map->tile_size_y) );
-  all_gameplay_entities->update_position_by_offset( 5, sf::Vector2f(test_tile_map->tile_size_x * -10002, 2* test_tile_map->tile_size_y) );
+  all_gameplay_entities->update_position_by_offset( 5, sf::Vector2f(test_tile_map->tile_size_x * 4, 7 * test_tile_map->tile_size_y) );
   all_gameplay_entities->update_position_by_offset( 6, sf::Vector2f(test_tile_map->tile_size_x * 7, 8 * test_tile_map->tile_size_y) );
   all_gameplay_entities->update_position_by_offset( 7, sf::Vector2f(test_tile_map->tile_size_x * 6, 9 * test_tile_map->tile_size_y) );
-  all_gameplay_entities->update_position_by_offset( 8, sf::Vector2f(test_tile_map->tile_size_x * 8, 6 * test_tile_map->tile_size_y) );
+  all_gameplay_entities->update_position_by_offset( 8, sf::Vector2f(test_tile_map->tile_size_x * 11, 6 * test_tile_map->tile_size_y) );
   all_gameplay_entities->update_position_by_offset( 9, sf::Vector2f(test_tile_map->tile_size_x * 9, 4 * test_tile_map->tile_size_y) );
   all_gameplay_entities->update_position_by_offset( 10, sf::Vector2f(test_tile_map->tile_size_x * 2, 9 * test_tile_map->tile_size_y) );
-  all_gameplay_entities->update_position_by_offset( 11, sf::Vector2f(test_tile_map->tile_size_x * 4, 4 * test_tile_map->tile_size_y) );
+  all_gameplay_entities->update_position_by_offset( 11, sf::Vector2f(test_tile_map->tile_size_x * 5, 4 * test_tile_map->tile_size_y) );
   all_gameplay_entities->update_position_by_offset( 12, sf::Vector2f(test_tile_map->tile_size_x * 13, 8 * test_tile_map->tile_size_y) );
   all_gameplay_entities->update_position_by_offset( 13, sf::Vector2f(test_tile_map->tile_size_x * 8, 5 * test_tile_map->tile_size_y) );
   all_gameplay_entities->update_position_by_offset( 14, sf::Vector2f(test_tile_map->tile_size_x * 4, 9 * test_tile_map->tile_size_y) );
@@ -227,7 +227,6 @@ int main()
       test_tile_map->bitmap[(i * test_tile_map->width) + (test_tile_map->width - 1)] = static_cast<int>(test_tile_map_bitmap_type::WALL);
     }
 
-    //for(int tile_index = 0; tile_index < test_tile_map->tile_count; tile_index += (test_tile_map->width * 2))
     for(int tile_index = (test_tile_map->width * 2); tile_index < test_tile_map->tile_count; tile_index += (test_tile_map->width * 2))
     {
       for(int tile_index_offset=1; tile_index_offset < test_tile_map->width; ++tile_index_offset)
@@ -239,12 +238,56 @@ int main()
 
     test_tile_map->update_tex_coords_from_bitmap();
 
+    // generate boundary collision lines
+    collision_line* const boundaries = new collision_line[4];
+    //  top left ----- top right
+    boundaries[0].vertices[0] = sf::Vector2f(test_tile_map->vertex_buffer[5].position.x, test_tile_map->vertex_buffer[5].position.y);
+    boundaries[0].vertices[1] = sf::Vector2f(test_tile_map->vertex_buffer[4 * (test_tile_map->width + 1)].position.x, test_tile_map->vertex_buffer[4 * (test_tile_map->width + 1)].position.y);
+    //  top right ----- bottom right
+    boundaries[1].vertices[0] = sf::Vector2f(test_tile_map->vertex_buffer[4 * (test_tile_map->width + 1)].position.x, test_tile_map->vertex_buffer[4 * (test_tile_map->width)].position.y);
+    boundaries[1].vertices[1] = sf::Vector2f(test_tile_map->vertex_buffer[4 * (test_tile_map->tile_count + 1)].position.x, test_tile_map->vertex_buffer[4 * (test_tile_map->tile_count + 1)].position.y);
+    //  bottom right ----- bottom left
+    boundaries[2].vertices[0] = sf::Vector2f(test_tile_map->vertex_buffer[4 * (test_tile_map->tile_count + 1)].position.x, test_tile_map->vertex_buffer[4 * (test_tile_map->tile_count + 1)].position.y);
+    boundaries[2].vertices[1] = sf::Vector2f(test_tile_map->vertex_buffer[(4 * (test_tile_map->tile_count - test_tile_map->width + 1)) + 1].position.x, test_tile_map->vertex_buffer[(4 * (test_tile_map->tile_count - test_tile_map->width + 1)) + 1].position.y);
+    //  bottom left  ----- top left
+    boundaries[3].vertices[0] = sf::Vector2f(test_tile_map->vertex_buffer[(4 * (test_tile_map->tile_count - test_tile_map->width + 1)) + 1].position.x, test_tile_map->vertex_buffer[(4 * (test_tile_map->tile_count - test_tile_map->width + 1)) + 1].position.y);
+    boundaries[3].vertices[1] = sf::Vector2f(test_tile_map->vertex_buffer[5].position.x, test_tile_map->vertex_buffer[5].position.y);
+
+    // generate wall collision lines (excluding walls covered by boundaries)
+    collision_line* const wall_collision_lines = new collision_line[((test_tile_map->width/2) - 1) * (test_tile_map->height - 2) * 4]; // excluding the walls covered by the boundaries
+    int wall_collision_line_index = 0;
+    for (int tile_index=0; tile_index < test_tile_map->tile_count; ++tile_index)
+    {
+      if (static_cast<test_tile_map_bitmap_type>(test_tile_map->bitmap[tile_index]) != test_tile_map_bitmap_type::WALL) continue;
+      if ( (tile_index % test_tile_map->width)       == 0)  continue;
+      if ( (tile_index % (test_tile_map->width - 1)) == 0)  continue;
+      if (tile_index % 2 == 0)
+      {
+        //  top left ----- top right
+        wall_collision_lines[wall_collision_line_index].vertices[0] = sf::Vector2f(test_tile_map->vertex_buffer[(tile_index + 1) * 4].position.x, test_tile_map->vertex_buffer[(tile_index + 1) * 4].position.y);
+        wall_collision_lines[wall_collision_line_index].vertices[1] = sf::Vector2f(test_tile_map->vertex_buffer[((tile_index + 1) * 4) + 1].position.x, test_tile_map->vertex_buffer[((tile_index + 1) * 4) + 1].position.y);
+        //  top right ----- bottom right
+        wall_collision_lines[wall_collision_line_index].vertices[0] = sf::Vector2f(test_tile_map->vertex_buffer[((tile_index + 1) * 4) + 1].position.x, test_tile_map->vertex_buffer[((tile_index + 1) * 4) + 1].position.y);
+        wall_collision_lines[wall_collision_line_index].vertices[1] = sf::Vector2f(test_tile_map->vertex_buffer[((tile_index + 1) * 4) + 2].position.x, test_tile_map->vertex_buffer[((tile_index + 1) * 4) + 2].position.y);
+        //  bottom right ----- bottom left
+        wall_collision_lines[wall_collision_line_index].vertices[0] = sf::Vector2f(test_tile_map->vertex_buffer[((tile_index + 1) * 4) + 2].position.x, test_tile_map->vertex_buffer[((tile_index + 1) * 4) + 2].position.y);
+        wall_collision_lines[wall_collision_line_index].vertices[1] = sf::Vector2f(test_tile_map->vertex_buffer[((tile_index + 1) * 4) + 3].position.x, test_tile_map->vertex_buffer[((tile_index + 1) * 4) + 3].position.y);
+        //  bottom left  ----- top left
+        wall_collision_lines[wall_collision_line_index].vertices[0] = sf::Vector2f(test_tile_map->vertex_buffer[((tile_index + 1) * 4) + 3].position.x, test_tile_map->vertex_buffer[((tile_index + 1) * 4) + 3].position.y);
+        wall_collision_lines[wall_collision_line_index].vertices[1] = sf::Vector2f(test_tile_map->vertex_buffer[(tile_index + 1) * 4].position.x, test_tile_map->vertex_buffer[(tile_index + 1) * 4].position.y);
+
+        wall_collision_line_index += 4;
+      }
+    }
+
+
     /* collision update loop */
 
     tile_to_gameplay_entities->update(*test_tile_map, *all_gameplay_entities, gameplay_entity_id_to_tile_bucket_index_of_first_vertex);
     sf::Vector2f velocity_cache[MAX_GAMEPLAY_ENTITIES];
     memcpy(&velocity_cache, all_gameplay_entities->velocities, sizeof(all_gameplay_entities->velocities));
 
+    // start loop
 
     float timestep = elapsed_frame_time_seconds;
     generate_collision_line_input* const all_collision_line_input = new generate_collision_line_input[MAX_GAMEPLAY_ENTITIES];
@@ -258,14 +301,17 @@ int main()
       all_collision_line_input[i].collision_vertices[3] = all_gameplay_entities->collision_vertices[(i*4) + 3];
     }
 
-    collision_line* const all_collision_lines = new collision_line[MAX_GAMEPLAY_ENTITIES * 4]();
+    collision_line* const all_collision_lines = new collision_line[MAX_GAMEPLAY_ENTITIES * 4];
 
     generate_collision_lines(all_collision_line_input, all_collision_lines, timestep, MAX_GAMEPLAY_ENTITIES);
-
-
+    
+    // handle wall collisions
 
 
     //all_gameplay_entities->update_positions_by_velocity(elapsed_frame_time_seconds);
+
+
+    // end of loop
 
     for(int i=0; i < MAX_GAMEPLAY_ENTITIES; ++i)
       all_gameplay_entities->velocities[i] = velocity_cache[i];
