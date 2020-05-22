@@ -209,22 +209,22 @@ int main()
     // generate walls
     for(int i=0; i < test_tile_map->width; ++i)
     {
-      test_tile_map->bitmap[i] = static_cast<int>(test_tile_map_bitmap_type::WALL);
+      test_tile_map->bitmap[i] = static_cast<int>(tile_map_bitmap_type::WALL);
     }
 
     for(int i=0; i < test_tile_map->height; ++i)
     {
-      test_tile_map->bitmap[i * test_tile_map->width] = static_cast<int>(test_tile_map_bitmap_type::WALL);
+      test_tile_map->bitmap[i * test_tile_map->width] = static_cast<int>(tile_map_bitmap_type::WALL);
     }
 
     for(int i=(test_tile_map->tile_count - test_tile_map->width); i < test_tile_map->tile_count; ++i)
     {
-      test_tile_map->bitmap[i] = static_cast<int>(test_tile_map_bitmap_type::WALL);
+      test_tile_map->bitmap[i] = static_cast<int>(tile_map_bitmap_type::WALL);
     }
 
     for(int i=0; i < test_tile_map->height; ++i)
     {
-      test_tile_map->bitmap[(i * test_tile_map->width) + (test_tile_map->width - 1)] = static_cast<int>(test_tile_map_bitmap_type::WALL);
+      test_tile_map->bitmap[(i * test_tile_map->width) + (test_tile_map->width - 1)] = static_cast<int>(tile_map_bitmap_type::WALL);
     }
 
     for(int tile_index = (test_tile_map->width * 2); tile_index < test_tile_map->tile_count; tile_index += (test_tile_map->width * 2))
@@ -232,53 +232,12 @@ int main()
       for(int tile_index_offset=1; tile_index_offset < test_tile_map->width; ++tile_index_offset)
       {
         if (tile_index_offset % 2 == 0)
-          test_tile_map->bitmap[tile_index + tile_index_offset] = static_cast<int>(test_tile_map_bitmap_type::WALL);
+          test_tile_map->bitmap[tile_index + tile_index_offset] = static_cast<int>(tile_map_bitmap_type::WALL);
       }
     }
 
     test_tile_map->update_tex_coords_from_bitmap();
 
-    // generate boundary collision lines
-    collision_line* const boundaries = new collision_line[4];
-    //  top left ----- top right
-    boundaries[0].vertices[0] = sf::Vector2f(test_tile_map->vertex_buffer[5].position.x, test_tile_map->vertex_buffer[5].position.y);
-    boundaries[0].vertices[1] = sf::Vector2f(test_tile_map->vertex_buffer[4 * (test_tile_map->width + 1)].position.x, test_tile_map->vertex_buffer[4 * (test_tile_map->width + 1)].position.y);
-    //  top right ----- bottom right
-    boundaries[1].vertices[0] = sf::Vector2f(test_tile_map->vertex_buffer[4 * (test_tile_map->width + 1)].position.x, test_tile_map->vertex_buffer[4 * (test_tile_map->width)].position.y);
-    boundaries[1].vertices[1] = sf::Vector2f(test_tile_map->vertex_buffer[4 * (test_tile_map->tile_count + 1)].position.x, test_tile_map->vertex_buffer[4 * (test_tile_map->tile_count + 1)].position.y);
-    //  bottom right ----- bottom left
-    boundaries[2].vertices[0] = sf::Vector2f(test_tile_map->vertex_buffer[4 * (test_tile_map->tile_count + 1)].position.x, test_tile_map->vertex_buffer[4 * (test_tile_map->tile_count + 1)].position.y);
-    boundaries[2].vertices[1] = sf::Vector2f(test_tile_map->vertex_buffer[(4 * (test_tile_map->tile_count - test_tile_map->width + 1)) + 1].position.x, test_tile_map->vertex_buffer[(4 * (test_tile_map->tile_count - test_tile_map->width + 1)) + 1].position.y);
-    //  bottom left  ----- top left
-    boundaries[3].vertices[0] = sf::Vector2f(test_tile_map->vertex_buffer[(4 * (test_tile_map->tile_count - test_tile_map->width + 1)) + 1].position.x, test_tile_map->vertex_buffer[(4 * (test_tile_map->tile_count - test_tile_map->width + 1)) + 1].position.y);
-    boundaries[3].vertices[1] = sf::Vector2f(test_tile_map->vertex_buffer[5].position.x, test_tile_map->vertex_buffer[5].position.y);
-
-    // generate wall collision lines (excluding walls covered by boundaries)
-    collision_line* const wall_collision_lines = new collision_line[((test_tile_map->width/2) - 1) * (test_tile_map->height - 2) * 4]; // excluding the walls covered by the boundaries
-    int wall_collision_line_index = 0;
-    for (int tile_index=0; tile_index < test_tile_map->tile_count; ++tile_index)
-    {
-      if (static_cast<test_tile_map_bitmap_type>(test_tile_map->bitmap[tile_index]) != test_tile_map_bitmap_type::WALL) continue;
-      if ( (tile_index % test_tile_map->width)       == 0)  continue;
-      if ( (tile_index % (test_tile_map->width - 1)) == 0)  continue;
-      if (tile_index % 2 == 0)
-      {
-        //  top left ----- top right
-        wall_collision_lines[wall_collision_line_index].vertices[0] = sf::Vector2f(test_tile_map->vertex_buffer[(tile_index + 1) * 4].position.x, test_tile_map->vertex_buffer[(tile_index + 1) * 4].position.y);
-        wall_collision_lines[wall_collision_line_index].vertices[1] = sf::Vector2f(test_tile_map->vertex_buffer[((tile_index + 1) * 4) + 1].position.x, test_tile_map->vertex_buffer[((tile_index + 1) * 4) + 1].position.y);
-        //  top right ----- bottom right
-        wall_collision_lines[wall_collision_line_index].vertices[0] = sf::Vector2f(test_tile_map->vertex_buffer[((tile_index + 1) * 4) + 1].position.x, test_tile_map->vertex_buffer[((tile_index + 1) * 4) + 1].position.y);
-        wall_collision_lines[wall_collision_line_index].vertices[1] = sf::Vector2f(test_tile_map->vertex_buffer[((tile_index + 1) * 4) + 2].position.x, test_tile_map->vertex_buffer[((tile_index + 1) * 4) + 2].position.y);
-        //  bottom right ----- bottom left
-        wall_collision_lines[wall_collision_line_index].vertices[0] = sf::Vector2f(test_tile_map->vertex_buffer[((tile_index + 1) * 4) + 2].position.x, test_tile_map->vertex_buffer[((tile_index + 1) * 4) + 2].position.y);
-        wall_collision_lines[wall_collision_line_index].vertices[1] = sf::Vector2f(test_tile_map->vertex_buffer[((tile_index + 1) * 4) + 3].position.x, test_tile_map->vertex_buffer[((tile_index + 1) * 4) + 3].position.y);
-        //  bottom left  ----- top left
-        wall_collision_lines[wall_collision_line_index].vertices[0] = sf::Vector2f(test_tile_map->vertex_buffer[((tile_index + 1) * 4) + 3].position.x, test_tile_map->vertex_buffer[((tile_index + 1) * 4) + 3].position.y);
-        wall_collision_lines[wall_collision_line_index].vertices[1] = sf::Vector2f(test_tile_map->vertex_buffer[(tile_index + 1) * 4].position.x, test_tile_map->vertex_buffer[(tile_index + 1) * 4].position.y);
-
-        wall_collision_line_index += 4;
-      }
-    }
 
 
     /* collision update loop */
@@ -301,11 +260,13 @@ int main()
       all_collision_line_input[i].collision_vertices[3] = all_gameplay_entities->collision_vertices[(i*4) + 3];
     }
 
-    collision_line* const all_collision_lines = new collision_line[MAX_GAMEPLAY_ENTITIES * 4];
+    collision_line* const all_collision_lines_x_axis = new collision_line[(MAX_GAMEPLAY_ENTITIES * 4) / 2];
+    collision_line* const all_collision_lines_y_axis = new collision_line[(MAX_GAMEPLAY_ENTITIES * 4) / 2];
 
-    generate_collision_lines(all_collision_line_input, all_collision_lines, timestep, MAX_GAMEPLAY_ENTITIES);
+    generate_collision_lines(all_collision_line_input, all_collision_lines_x_axis, all_collision_lines_y_axis, timestep, MAX_GAMEPLAY_ENTITIES);
     
-    // handle wall collisions
+    update_collision_lines_with_walls<true, (MAX_GAMEPLAY_ENTITIES * 4) / 2, TILE_MAP_WIDTH, TILE_MAP_HEIGHT>(all_collision_lines_x_axis, *test_tile_map);
+    update_collision_lines_with_walls<false,(MAX_GAMEPLAY_ENTITIES * 4) / 2, TILE_MAP_WIDTH, TILE_MAP_HEIGHT>(all_collision_lines_y_axis, *test_tile_map);
 
 
     //all_gameplay_entities->update_positions_by_velocity(elapsed_frame_time_seconds);
