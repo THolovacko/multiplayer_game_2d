@@ -504,7 +504,7 @@ struct entity_collision_data
   //bool         is_garbage;
 };
 
-// first vertex is left or top vertex and second vertex is right or bottom vertex depending on axis
+// only for single axis...first vertex is left or top vertex and second vertex is right or bottom vertex depending on axis
 struct collision_line
 {
   sf::Vector2f vertices[2];

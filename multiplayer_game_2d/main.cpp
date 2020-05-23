@@ -268,6 +268,10 @@ int main()
     update_collision_lines_with_walls<true, (MAX_GAMEPLAY_ENTITIES * 4) / 2, TILE_MAP_WIDTH, TILE_MAP_HEIGHT>(all_collision_lines_x_axis, *test_tile_map);
     update_collision_lines_with_walls<false,(MAX_GAMEPLAY_ENTITIES * 4) / 2, TILE_MAP_WIDTH, TILE_MAP_HEIGHT>(all_collision_lines_y_axis, *test_tile_map);
 
+    // iterate through tile buckets: check for collision line intersections for all ids in tile; also use velocity to check intersections to ids in adjacent tile
+
+
+    // remember: don't forget to handle garbage entity values
 
     all_gameplay_entities->update_positions_by_velocity(timestep);
 
