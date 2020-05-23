@@ -497,10 +497,11 @@ struct gameplay_entity_ids_per_tile
     int current_gameplay_entity_id_bucket_index_limit;
 }; // gameplay_entity_ids_per_tile
 
-struct generate_collision_line_input
+struct entity_collision_data
 {
   sf::Vector2f collision_vertices[4];
   sf::Vector2f velocity;
+  //bool         is_garbage;
 };
 
 // first vertex is left or top vertex and second vertex is right or bottom vertex depending on axis
@@ -509,7 +510,7 @@ struct collision_line
   sf::Vector2f vertices[2];
 };
 
-void generate_collision_lines(const generate_collision_line_input* const all_collision_line_input, collision_line* const all_collision_lines_x_axis, collision_line* const all_collision_lines_y_axis, const float timestep, const int input_size)
+void generate_collision_lines(const entity_collision_data* const all_entity_collision_data, collision_line* const all_collision_lines_x_axis, collision_line* const all_collision_lines_y_axis, const float timestep, const int input_size)
 {
   // use velocity to decide changing vertex
   // set changing vertex to changing vertex + timestep
@@ -518,20 +519,20 @@ void generate_collision_lines(const generate_collision_line_input* const all_col
   for(int input_index=0,output_index=0; input_index < input_size; ++input_index, output_index+=2)
   {
     // top left --- top right
-    all_collision_lines_x_axis[output_index].vertices[0] = all_collision_line_input[input_index].collision_vertices[0] + ( (all_collision_line_input->velocity * timestep) * static_cast<float>(all_collision_line_input->velocity.y < 0.0f) );
-    all_collision_lines_x_axis[output_index].vertices[1] = all_collision_line_input[input_index].collision_vertices[1] + ( (all_collision_line_input->velocity * timestep) * static_cast<float>(all_collision_line_input->velocity.y < 0.0f) );
+    all_collision_lines_x_axis[output_index].vertices[0] = all_entity_collision_data[input_index].collision_vertices[0] + ( (all_entity_collision_data->velocity * timestep) * static_cast<float>(all_entity_collision_data->velocity.y < 0.0f) );
+    all_collision_lines_x_axis[output_index].vertices[1] = all_entity_collision_data[input_index].collision_vertices[1] + ( (all_entity_collision_data->velocity * timestep) * static_cast<float>(all_entity_collision_data->velocity.y < 0.0f) );
 
     // top right --- bottom right
-    all_collision_lines_y_axis[output_index].vertices[0] = all_collision_line_input[input_index].collision_vertices[1] + ( (all_collision_line_input->velocity * timestep) * static_cast<float>(all_collision_line_input->velocity.x > 0.0f) );
-    all_collision_lines_y_axis[output_index].vertices[1] = all_collision_line_input[input_index].collision_vertices[2] + ( (all_collision_line_input->velocity * timestep) * static_cast<float>(all_collision_line_input->velocity.x > 0.0f) );
+    all_collision_lines_y_axis[output_index].vertices[0] = all_entity_collision_data[input_index].collision_vertices[1] + ( (all_entity_collision_data->velocity * timestep) * static_cast<float>(all_entity_collision_data->velocity.x > 0.0f) );
+    all_collision_lines_y_axis[output_index].vertices[1] = all_entity_collision_data[input_index].collision_vertices[2] + ( (all_entity_collision_data->velocity * timestep) * static_cast<float>(all_entity_collision_data->velocity.x > 0.0f) );
 
     // bottom left --- bottom right
-    all_collision_lines_x_axis[output_index+1].vertices[0] = all_collision_line_input[input_index].collision_vertices[3] + ( (all_collision_line_input->velocity * timestep) * static_cast<float>(all_collision_line_input->velocity.y > 0.0f) );
-    all_collision_lines_x_axis[output_index+1].vertices[1] = all_collision_line_input[input_index].collision_vertices[2] + ( (all_collision_line_input->velocity * timestep) * static_cast<float>(all_collision_line_input->velocity.y > 0.0f) );
+    all_collision_lines_x_axis[output_index+1].vertices[0] = all_entity_collision_data[input_index].collision_vertices[3] + ( (all_entity_collision_data->velocity * timestep) * static_cast<float>(all_entity_collision_data->velocity.y > 0.0f) );
+    all_collision_lines_x_axis[output_index+1].vertices[1] = all_entity_collision_data[input_index].collision_vertices[2] + ( (all_entity_collision_data->velocity * timestep) * static_cast<float>(all_entity_collision_data->velocity.y > 0.0f) );
 
     // top left --- bottom left
-    all_collision_lines_y_axis[output_index+1].vertices[0] = all_collision_line_input[input_index].collision_vertices[0] + ( (all_collision_line_input->velocity * timestep) * static_cast<float>(all_collision_line_input->velocity.x < 0.0f) );
-    all_collision_lines_y_axis[output_index+1].vertices[1] = all_collision_line_input[input_index].collision_vertices[3] + ( (all_collision_line_input->velocity * timestep) * static_cast<float>(all_collision_line_input->velocity.x < 0.0f) );
+    all_collision_lines_y_axis[output_index+1].vertices[0] = all_entity_collision_data[input_index].collision_vertices[0] + ( (all_entity_collision_data->velocity * timestep) * static_cast<float>(all_entity_collision_data->velocity.x < 0.0f) );
+    all_collision_lines_y_axis[output_index+1].vertices[1] = all_entity_collision_data[input_index].collision_vertices[3] + ( (all_entity_collision_data->velocity * timestep) * static_cast<float>(all_entity_collision_data->velocity.x < 0.0f) );
   }
 }
 

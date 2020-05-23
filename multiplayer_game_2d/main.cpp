@@ -249,27 +249,27 @@ int main()
     // start loop
 
     float timestep = elapsed_frame_time_seconds;
-    generate_collision_line_input* const all_collision_line_input = new generate_collision_line_input[MAX_GAMEPLAY_ENTITIES];
+    entity_collision_data* const all_entity_collision_data = new entity_collision_data[MAX_GAMEPLAY_ENTITIES];
     for(int i=0; i < MAX_GAMEPLAY_ENTITIES; ++i)
     {
-      all_collision_line_input[i].velocity = all_gameplay_entities->velocities[i];
+      all_entity_collision_data[i].velocity = all_gameplay_entities->velocities[i];
 
-      all_collision_line_input[i].collision_vertices[0] = all_gameplay_entities->collision_vertices[(i*4) + 0];
-      all_collision_line_input[i].collision_vertices[1] = all_gameplay_entities->collision_vertices[(i*4) + 1];
-      all_collision_line_input[i].collision_vertices[2] = all_gameplay_entities->collision_vertices[(i*4) + 2];
-      all_collision_line_input[i].collision_vertices[3] = all_gameplay_entities->collision_vertices[(i*4) + 3];
+      all_entity_collision_data[i].collision_vertices[0] = all_gameplay_entities->collision_vertices[(i*4) + 0];
+      all_entity_collision_data[i].collision_vertices[1] = all_gameplay_entities->collision_vertices[(i*4) + 1];
+      all_entity_collision_data[i].collision_vertices[2] = all_gameplay_entities->collision_vertices[(i*4) + 2];
+      all_entity_collision_data[i].collision_vertices[3] = all_gameplay_entities->collision_vertices[(i*4) + 3];
     }
 
     collision_line* const all_collision_lines_x_axis = new collision_line[(MAX_GAMEPLAY_ENTITIES * 4) / 2];
     collision_line* const all_collision_lines_y_axis = new collision_line[(MAX_GAMEPLAY_ENTITIES * 4) / 2];
 
-    generate_collision_lines(all_collision_line_input, all_collision_lines_x_axis, all_collision_lines_y_axis, timestep, MAX_GAMEPLAY_ENTITIES);
+    generate_collision_lines(all_entity_collision_data, all_collision_lines_x_axis, all_collision_lines_y_axis, timestep, MAX_GAMEPLAY_ENTITIES);
     
     update_collision_lines_with_walls<true, (MAX_GAMEPLAY_ENTITIES * 4) / 2, TILE_MAP_WIDTH, TILE_MAP_HEIGHT>(all_collision_lines_x_axis, *test_tile_map);
     update_collision_lines_with_walls<false,(MAX_GAMEPLAY_ENTITIES * 4) / 2, TILE_MAP_WIDTH, TILE_MAP_HEIGHT>(all_collision_lines_y_axis, *test_tile_map);
 
 
-    //all_gameplay_entities->update_positions_by_velocity(elapsed_frame_time_seconds);
+    all_gameplay_entities->update_positions_by_velocity(timestep);
 
 
     // end of loop
