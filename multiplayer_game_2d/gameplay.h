@@ -497,11 +497,17 @@ struct gameplay_entity_ids_per_tile
     int current_gameplay_entity_id_bucket_index_limit;
 }; // gameplay_entity_ids_per_tile
 
-struct entity_collision_data
+struct entity_collision_input
 {
   sf::Vector2f collision_vertices[4];
   sf::Vector2f velocity;
   //bool         is_garbage;
+};
+
+struct entity_collision
+{
+  int   entity_ids[2];
+  float intersection_time;
 };
 
 // only for single axis...first vertex is left or top vertex and second vertex is right or bottom vertex depending on axis
@@ -510,7 +516,70 @@ struct collision_line
   sf::Vector2f vertices[2];
 };
 
-void generate_collision_lines(const entity_collision_data* const all_entity_collision_data, collision_line* const all_collision_lines_x_axis, collision_line* const all_collision_lines_y_axis, const float timestep, const int input_size)
+template<int entity_count, int max_collision_count, int tile_map_width, int tile_map_height>
+void calculate_collisions(const entity_collision_input* const collision_inputs, entity_collision* const output_collisions, const float timestep, const tile_map<tile_map_width,tile_map_height>& p_tile_map)
+{
+    sf::Vector2f velocity_expanded_vertices[4];
+    int y_index;
+    int x_index;
+    int tile_map_indexes[2];
+
+    // expand collision vertices
+    for(int i=0; i < entity_count; ++i)
+    {
+      velocity_expanded_vertices[0] = collision_inputs[i].collision_vertices[0] + (collision_inputs[i].velocity * timestep * static_cast<float>( (collision_inputs[i].velocity.y < 0.0f) || (collision_inputs[i].velocity.x < 0.0f) ));
+      velocity_expanded_vertices[1] = collision_inputs[i].collision_vertices[1] + (collision_inputs[i].velocity * timestep * static_cast<float>( (collision_inputs[i].velocity.y < 0.0f) || (collision_inputs[i].velocity.x > 0.0f) ));
+      velocity_expanded_vertices[2] = collision_inputs[i].collision_vertices[2] + (collision_inputs[i].velocity * timestep * static_cast<float>( (collision_inputs[i].velocity.y > 0.0f) || (collision_inputs[i].velocity.x > 0.0f) ));
+      velocity_expanded_vertices[3] = collision_inputs[i].collision_vertices[3] + (collision_inputs[i].velocity * timestep * static_cast<float>( (collision_inputs[i].velocity.y > 0.0f) || (collision_inputs[i].velocity.x < 0.0f) ));
+    }
+
+    // calculate tile_map indexes
+    y_index = static_cast<int>(velocity_expanded_vertices[0].y / p_tile_map.tile_size_y);
+    x_index = static_cast<int>(velocity_expanded_vertices[0].x / p_tile_map.tile_size_x);
+    tile_map_indexes[0] = (y_index * p_tile_map.width) + x_index;
+
+    y_index = static_cast<int>(velocity_expanded_vertices[3].y / p_tile_map.tile_size_y);
+    x_index = static_cast<int>(velocity_expanded_vertices[3].x / p_tile_map.tile_size_x);
+    tile_map_indexes[1] = (y_index * p_tile_map.width) + x_index;
+
+    // handle wall collisions
+    if ( p_tile_map.bitmap[tile_map_indexes[0]] == static_cast<int>(tile_map_bitmap_type::WALL) )
+    {
+      if (collision_inputs.velocity.x < 0.0f)
+      {
+        velocity_expanded_vertices[0].x = p_tile_map.vertex_buffer[(4 * (tile_map_indexes[0] + 1)) + 1].position.x;
+        velocity_expanded_vertices[3].x = p_tile_map.vertex_buffer[(4 * (tile_map_indexes[0] + 1)) + 1].position.x;
+        tile_map_indexes[0] += 1;
+      }
+      else if(collision_inputs.velocity.y < 0.0f)
+      {
+        velocity_expanded_vertices[0].y = p_tile_map.vertex_buffer[(4 * (tile_map_indexes[0] + 1)) + 2].position.y;
+        velocity_expanded_vertices[1].y = p_tile_map.vertex_buffer[(4 * (tile_map_indexes[0] + 1)) + 2].position.y;
+        tile_map_indexes[0] += p_tile_map.width;
+      }
+    }
+
+    if ( p_tile_map.bitmap[tile_map_indexes[1]] == static_cast<int>(tile_map_bitmap_type::WALL) )
+    {
+      if (collision_inputs.velocity.x > 0.0f)
+      {
+        velocity_expanded_vertices[1].x = p_tile_map.vertex_buffer[(4 * (tile_map_indexes[1] + 1))].position.x;
+        velocity_expanded_vertices[2].x = p_tile_map.vertex_buffer[(4 * (tile_map_indexes[1] + 1))].position.x;
+        tile_map_indexes[1] -= 1;
+      }
+      else if(collision_inputs.velocity.y > 0.0f)
+      {
+        velocity_expanded_vertices[2].y = p_tile_map.vertex_buffer[(4 * (tile_map_indexes[1] + 1))].position.y;
+        velocity_expanded_vertices[3].y = p_tile_map.vertex_buffer[(4 * (tile_map_indexes[1] + 1))].position.y;
+        tile_map_indexes[1] -= p_tile_map.width;
+      }
+    }
+
+    // check for overlaps with all ids in tile_map_hash using both tile_map_indexes
+    //  if overlaping generate collision
+}
+
+void generate_collision_lines(const entity_collision_input* const all_entity_collision_data, collision_line* const all_collision_lines_x_axis, collision_line* const all_collision_lines_y_axis, const float timestep, const int input_size)
 {
   // use velocity to decide changing vertex
   // set changing vertex to changing vertex + timestep

@@ -249,7 +249,7 @@ int main()
     // start loop
 
     float timestep = elapsed_frame_time_seconds;
-    entity_collision_data* const all_entity_collision_data = new entity_collision_data[MAX_GAMEPLAY_ENTITIES];
+    entity_collision_input* const all_entity_collision_data = new entity_collision_input[MAX_GAMEPLAY_ENTITIES];
     for(int i=0; i < MAX_GAMEPLAY_ENTITIES; ++i)
     {
       all_entity_collision_data[i].velocity = all_gameplay_entities->velocities[i];
@@ -260,15 +260,16 @@ int main()
       all_entity_collision_data[i].collision_vertices[3] = all_gameplay_entities->collision_vertices[(i*4) + 3];
     }
 
-    collision_line* const all_collision_lines_x_axis = new collision_line[(MAX_GAMEPLAY_ENTITIES * 4) / 2];
-    collision_line* const all_collision_lines_y_axis = new collision_line[(MAX_GAMEPLAY_ENTITIES * 4) / 2];
+    //collision_line* const all_collision_lines_x_axis = new collision_line[(MAX_GAMEPLAY_ENTITIES * 4) / 2];
+    //collision_line* const all_collision_lines_y_axis = new collision_line[(MAX_GAMEPLAY_ENTITIES * 4) / 2];
 
-    generate_collision_lines(all_entity_collision_data, all_collision_lines_x_axis, all_collision_lines_y_axis, timestep, MAX_GAMEPLAY_ENTITIES);
+    //generate_collision_lines(all_entity_collision_data, all_collision_lines_x_axis, all_collision_lines_y_axis, timestep, MAX_GAMEPLAY_ENTITIES);
     
-    update_collision_lines_with_walls<true, (MAX_GAMEPLAY_ENTITIES * 4) / 2, TILE_MAP_WIDTH, TILE_MAP_HEIGHT>(all_collision_lines_x_axis, *test_tile_map);
-    update_collision_lines_with_walls<false,(MAX_GAMEPLAY_ENTITIES * 4) / 2, TILE_MAP_WIDTH, TILE_MAP_HEIGHT>(all_collision_lines_y_axis, *test_tile_map);
+    //update_collision_lines_with_walls<true, (MAX_GAMEPLAY_ENTITIES * 4) / 2, TILE_MAP_WIDTH, TILE_MAP_HEIGHT>(all_collision_lines_x_axis, *test_tile_map);
+    //update_collision_lines_with_walls<false,(MAX_GAMEPLAY_ENTITIES * 4) / 2, TILE_MAP_WIDTH, TILE_MAP_HEIGHT>(all_collision_lines_y_axis, *test_tile_map);
 
-    // iterate through tile buckets: check for collision line intersections for all ids in tile; also use velocity to check intersections to ids in adjacent tile
+
+    // calculate collisions   input: {collision_data}  =>  output: {entity_id_a, entity_id_b, float intersection_time}
 
 
     // remember: don't forget to handle garbage entity values
