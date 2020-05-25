@@ -516,30 +516,29 @@ struct collision_line
   sf::Vector2f vertices[2];
 };
 
-template<int entity_count, int max_collision_count, int tile_map_width, int tile_map_height>
-void calculate_collisions(const entity_collision_input* const collision_inputs, entity_collision* const output_collisions, const float timestep, const tile_map<tile_map_width,tile_map_height>& p_tile_map)
+template<int max_entity_count, int max_collision_per_tile_count, int tile_map_width, int tile_map_height>
+void calculate_collisions(const entity_collision_input* const collision_inputs, entity_collision* const output_collisions, const float timestep, const tile_map<tile_map_width,tile_map_height>& p_tile_map, const gameplay_entity_ids_per_tile<tile_map_width,tile_map_height,max_entity_count,max_collision_per_tile_count>* tile_map_hash)
 {
-    sf::Vector2f velocity_expanded_vertices[4];
-    int y_index;
-    int x_index;
-    int tile_map_indexes[2];
+  sf::Vector2f velocity_expanded_vertices[4];
+  int y_index;
+  int x_index;
+  int tile_map_indexes[2];
 
-    // expand collision vertices
-    for(int i=0; i < entity_count; ++i)
-    {
-      velocity_expanded_vertices[0] = collision_inputs[i].collision_vertices[0] + (collision_inputs[i].velocity * timestep * static_cast<float>( (collision_inputs[i].velocity.y < 0.0f) || (collision_inputs[i].velocity.x < 0.0f) ));
-      velocity_expanded_vertices[1] = collision_inputs[i].collision_vertices[1] + (collision_inputs[i].velocity * timestep * static_cast<float>( (collision_inputs[i].velocity.y < 0.0f) || (collision_inputs[i].velocity.x > 0.0f) ));
-      velocity_expanded_vertices[2] = collision_inputs[i].collision_vertices[2] + (collision_inputs[i].velocity * timestep * static_cast<float>( (collision_inputs[i].velocity.y > 0.0f) || (collision_inputs[i].velocity.x > 0.0f) ));
-      velocity_expanded_vertices[3] = collision_inputs[i].collision_vertices[3] + (collision_inputs[i].velocity * timestep * static_cast<float>( (collision_inputs[i].velocity.y > 0.0f) || (collision_inputs[i].velocity.x < 0.0f) ));
-    }
+  // expand collision vertices
+  for(int entity_id=0; entity_id < max_entity_count; ++entity_id)
+  {
+    velocity_expanded_vertices[0] = collision_inputs[entity_id].collision_vertices[0] + (collision_inputs[entity_id].velocity * timestep * static_cast<float>( (collision_inputs[entity_id].velocity.y < 0.0f) || (collision_inputs[entity_id].velocity.x < 0.0f) ));
+    velocity_expanded_vertices[1] = collision_inputs[entity_id].collision_vertices[1] + (collision_inputs[entity_id].velocity * timestep * static_cast<float>( (collision_inputs[entity_id].velocity.y < 0.0f) || (collision_inputs[entity_id].velocity.x > 0.0f) ));
+    velocity_expanded_vertices[2] = collision_inputs[entity_id].collision_vertices[2] + (collision_inputs[entity_id].velocity * timestep * static_cast<float>( (collision_inputs[entity_id].velocity.y > 0.0f) || (collision_inputs[entity_id].velocity.x > 0.0f) ));
+    velocity_expanded_vertices[3] = collision_inputs[entity_id].collision_vertices[3] + (collision_inputs[entity_id].velocity * timestep * static_cast<float>( (collision_inputs[entity_id].velocity.y > 0.0f) || (collision_inputs[entity_id].velocity.x < 0.0f) ));
 
     // calculate tile_map indexes
     y_index = static_cast<int>(velocity_expanded_vertices[0].y / p_tile_map.tile_size_y);
     x_index = static_cast<int>(velocity_expanded_vertices[0].x / p_tile_map.tile_size_x);
     tile_map_indexes[0] = (y_index * p_tile_map.width) + x_index;
 
-    y_index = static_cast<int>(velocity_expanded_vertices[3].y / p_tile_map.tile_size_y);
-    x_index = static_cast<int>(velocity_expanded_vertices[3].x / p_tile_map.tile_size_x);
+    y_index = static_cast<int>(velocity_expanded_vertices[2].y / p_tile_map.tile_size_y);
+    x_index = static_cast<int>(velocity_expanded_vertices[2].x / p_tile_map.tile_size_x);
     tile_map_indexes[1] = (y_index * p_tile_map.width) + x_index;
 
     // handle wall collisions
@@ -575,8 +574,30 @@ void calculate_collisions(const entity_collision_input* const collision_inputs, 
       }
     }
 
-    // check for overlaps with all ids in tile_map_hash using both tile_map_indexes
-    //  if overlaping generate collision
+    // calculate intersection time with all ids in tile_map_hash using both tile_map_indexes
+    for(auto& tile_map_index : tile_map_indexes)
+    {
+      for(int tile_bucket_index = tile_map_index * max_collision_per_tile_count; tile_bucket_index < ( max_collision_per_tile_count * (tile_map_index + 1) ); ++tile_bucket_index)
+      {
+        int other_entity_id = tile_map_hash->tile_buckets[tile_bucket_index];
+        if( (other_entity_id == -1) || (other_entity_id == entity_id) )
+        {
+          tile_map_hash->tile_buckets[tile_bucket_index] = entity_id;
+          continue;
+        }
+        else
+        {
+          // calculate intersection time using: gameplay_entity_position(time) = gameplay_entity_position(0) + (velocity * time)
+          //                position1(0) + (velocity1 * time) = position2(0) + (velocity2 * time)
+          //                position1(0) - position2(0) / velocity2 - velocity1 = time, where the velocities aren't the same
+
+          if (collision_inputs[entity_id].velocity == collision_inputs[other_entity_id]) continue;  // impossible to intersect
+          //float intersection_time = 
+        }
+
+      }
+    }
+  }
 }
 
 void generate_collision_lines(const entity_collision_input* const all_entity_collision_data, collision_line* const all_collision_lines_x_axis, collision_line* const all_collision_lines_y_axis, const float timestep, const int input_size)
