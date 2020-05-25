@@ -519,6 +519,12 @@ struct collision_line
 template<int max_entity_count, int max_collision_per_tile_count, int tile_map_width, int tile_map_height>
 void calculate_collisions(const entity_collision_input* const collision_inputs, entity_collision* const output_collisions, const float timestep, const tile_map<tile_map_width,tile_map_height>& p_tile_map, const gameplay_entity_ids_per_tile<tile_map_width,tile_map_height,max_entity_count,max_collision_per_tile_count>* tile_map_hash)
 {
+  // @remember: current max entity speed target is 5 tiles per second (1 tile per .2 seconds)
+  // @remember:   and current ping target must be below 100 milliseconds (.1 second)
+  // @remember:   and current minimum framerate target is 25 fps (1 frame per .04 seconds)
+  // @remember:   so if these targets change might need to handle collision of player being able to move a tile per frame
+  // @remember:     that can be handled by inserting entity_id in range of tile_map_indexes (rather than just 2) when calculating intersection time
+
   sf::Vector2f velocity_expanded_vertices[4];
   int y_index;
   int x_index;
@@ -579,11 +585,18 @@ void calculate_collisions(const entity_collision_input* const collision_inputs, 
     {
       for(int tile_bucket_index = tile_map_index * max_collision_per_tile_count; tile_bucket_index < ( max_collision_per_tile_count * (tile_map_index + 1) ); ++tile_bucket_index)
       {
+        bool already_in_tile = false;
         int other_entity_id = tile_map_hash->tile_buckets[tile_bucket_index];
-        if( (other_entity_id == -1) || (other_entity_id == entity_id) )
+
+        if (other_entity_id == entity_id)
         {
-          tile_map_hash->tile_buckets[tile_bucket_index] = entity_id;
+          already_in_tile = true;
           continue;
+        }
+        else if (other_entity_id == -1) // end of bucket
+        {
+          tile_map_hash->tile_buckets[tile_bucket_index] += ( (entity_id+1) * static_cast<int>(!already_in_tile) ); // entity_id+1 is because adding to known -1 value
+          break;
         }
         else
         {
@@ -592,6 +605,15 @@ void calculate_collisions(const entity_collision_input* const collision_inputs, 
           //                position1(0) - position2(0) / velocity2 - velocity1 = time, where the velocities aren't the same
 
           if (collision_inputs[entity_id].velocity == collision_inputs[other_entity_id]) continue;  // impossible to intersect
+
+          // all ties are arbitrary
+          // calculate most left entity id
+          // calculate most right entity id
+          // calculate most up entity_id
+          // calculate most don entity_id
+
+
+
           //float intersection_time = 
         }
 
