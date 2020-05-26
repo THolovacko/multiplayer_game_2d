@@ -261,6 +261,11 @@ int main()
       all_entity_collision_data[i].collision_vertices[3] = all_gameplay_entities->collision_vertices[(i*4) + 3];
     }
 
+    // !!! collisions will most likely need to be reset when memory is no longer dynamic
+    entity_collision* const all_entity_collisions = new entity_collision[TILE_MAP_COUNT * MAX_COLLISIONS_PER_TILE];
+
+    calculate_collisions<MAX_GAMEPLAY_ENTITIES,MAX_COLLISIONS_PER_TILE,TILE_MAP_WIDTH,TILE_MAP_HEIGHT>(all_entity_collision_data,all_entity_collisions,timestep,*test_tile_map,tile_to_gameplay_entities);
+
     //collision_line* const all_collision_lines_x_axis = new collision_line[(MAX_GAMEPLAY_ENTITIES * 4) / 2];
     //collision_line* const all_collision_lines_y_axis = new collision_line[(MAX_GAMEPLAY_ENTITIES * 4) / 2];
 
