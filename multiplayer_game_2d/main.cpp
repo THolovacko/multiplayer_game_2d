@@ -9,12 +9,13 @@
 #pragma warning(disable : 26812)
 
 
+// @remember: should decrease MAX_COLLISIONS_PER_TILE when game is finished or when related design decisions are final
 #define TILE_MAP_WIDTH              17
 #define TILE_MAP_HEIGHT             11
 #define TILE_MAP_COUNT              (TILE_MAP_WIDTH * TILE_MAP_HEIGHT)
 #define MAX_GAMEPLAY_ENTITIES       TILE_MAP_COUNT
 #define TILE_MAP_TEXTURE_SIDE_SIZE  64                                  // in pixels
-#define MAX_COLLISIONS_PER_TILE     5                                   // potential game objects (collisions) in an single tile
+#define MAX_COLLISIONS_PER_TILE     10                                  // potential game objects (collisions) in an single tile
 #define MAX_CHAIN_COLLISIONS        (2 * TILE_MAP_WIDTH)
 
 

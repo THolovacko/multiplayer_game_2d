@@ -604,17 +604,114 @@ void calculate_collisions(const entity_collision_input* const collision_inputs, 
           //                position1(0) + (velocity1 * time) = position2(0) + (velocity2 * time)
           //                position1(0) - position2(0) / velocity2 - velocity1 = time, where the velocities aren't the same
 
-          if (collision_inputs[entity_id].velocity == collision_inputs[other_entity_id]) continue;  // impossible to intersect
+          if (collision_inputs[entity_id].velocity == collision_inputs[other_entity_id].velocity) continue;  // impossible to intersect
 
-          // all ties are arbitrary
-          // calculate most left entity id
-          // calculate most right entity id
-          // calculate most up entity_id
-          // calculate most don entity_id
+          // decide vertices (all ties are arbitrary)
+          //   calculate most left entity id
+          //   calculate most right entity id
+          //   calculate most up entity_id
+          //   calculate most down entity_id
 
 
+          sf::Vector2f current_entity_origin = collision_inputs[entity_id].collision_vertices[0];
+          sf::Vector2f other_entity_origin   = collision_inputs[other_entity_id].collision_vertices[0];
 
-          //float intersection_time = 
+          int most_up_entity_id = ( entity_id       * static_cast<int>(current_entity_origin.y <= other_entity_origin.y  ) )
+                                + ( other_entity_id * static_cast<int>(other_entity_origin.y   <  current_entity_origin.y) );
+
+          int most_down_entity_id = ( entity_id       * static_cast<int>(most_up_entity_id != entity_id)       )
+                                  + ( other_entity_id * static_cast<int>(most_up_entity_id != other_entity_id) );
+
+          int most_left_entity_id = ( entity_id       * static_cast<int>(current_entity_origin.x <= other_entity_origin.x)  )
+                                  + ( other_entity_id * static_cast<int>(other_entity_origin.x   < current_entity_origin.x) );
+
+          int most_right_entity_id = ( entity_id       * static_cast<int>(most_left_entity_id != entity_id)       )
+                                   + ( other_entity_id * static_cast<int>(most_left_entity_id != other_entity_id) );
+
+
+          sf::Vector2f current_entity_vertex;
+          sf::Vector2f other_entity_vertex;
+
+          if(entity_id == most_up_entity_id)
+          {
+            if(entity_id == most_left_entity_id)
+            {
+              current_entity_vertex = collision_inputs[entity_id].collision_vertices[2];
+            }
+            else // entity is most up and most right
+            {
+              current_entity_vertex = collision_inputs[entity_id].collision_vertices[3];
+            }
+          }
+          else // entity is most down
+          {
+            if(entity_id == most_left_entity_id)
+            {
+              current_entity_vertex = collision_inputs[entity_id].collision_vertices[1];
+            }
+            else // entity is most down and most right
+            {
+              current_entity_vertex = collision_inputs[entity_id].collision_vertices[0];
+            }
+          }
+
+          if(other_entity_id == most_up_entity_id)
+          {
+            if(other_entity_id == most_left_entity_id)
+            {
+              other_entity_vertex = collision_inputs[other_entity_id].collision_vertices[2];
+            }
+            else // other entity is most up and most right
+            {
+              other_entity_vertex = collision_inputs[other_entity_id].collision_vertices[3];
+            }
+          }
+          else // other entity is most down
+          {
+            if(other_entity_id == most_left_entity_id)
+            {
+              other_entity_vertex = collision_inputs[other_entity_id].collision_vertices[1];
+            }
+            else // other entity is most down and most right
+            {
+              other_entity_vertex = collision_inputs[other_entity_id].collision_vertices[0];
+            }
+          }
+
+          // calculate intersection times
+          sf::Vector2f intersection_times = (current_entity_vertex - other_entity_vertex) / (collision_inputs[entity_id].velocity - collision_inputs[other_entity_id].velocity);
+          
+          // if single axis velocity use that value (validate is real number)
+
+          float intersection_time = -1.0f;
+
+          if (collision_inputs[entity_id].velocity.x)
+          {
+            intersection_time = collision_inputs[entity_id].velocity.x;
+          }
+          else if (collision_inputs[entity_id].velocity.y)
+          {
+            intersection_time = collision_inputs[entity_id].velocity.y;
+          }
+
+          if ( (intersection_time >= 0.0f) && (intersection_time <= timestep) ) // check if valid intersection time
+          {
+            if (intersection_times.x && intersection_times.y)
+            {
+              // next unless confirm overlap after intersection_time
+
+              if(intersection_times.x)
+              {
+                // confirm y axis same after intersection time
+              }
+              else
+              {
+                // confirm x axis same after intersection time
+              }
+            }
+
+            // generate collision
+          }
         }
 
       }
