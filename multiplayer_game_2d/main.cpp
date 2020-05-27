@@ -36,7 +36,6 @@ int main()
   
   tile_map<TILE_MAP_WIDTH,TILE_MAP_HEIGHT>* test_tile_map = new tile_map<TILE_MAP_WIDTH,TILE_MAP_HEIGHT>("Assets/Images/test_tile_map.png", (float) window_size.x, (float) window_size.y, TILE_MAP_TEXTURE_SIDE_SIZE);
   gameplay_entities<MAX_GAMEPLAY_ENTITIES>* all_gameplay_entities = new gameplay_entities<MAX_GAMEPLAY_ENTITIES>("Assets/Images/gameplay_entities.png", TILE_MAP_TEXTURE_SIDE_SIZE * 3); // need to be able to handle a single gameplay entity per tile
-  int gameplay_entity_id_to_tile_bucket_index_of_first_vertex[MAX_GAMEPLAY_ENTITIES];
   gameplay_entity_ids_per_tile<TILE_MAP_WIDTH,TILE_MAP_HEIGHT,MAX_GAMEPLAY_ENTITIES,MAX_COLLISIONS_PER_TILE>* tile_to_gameplay_entities = new gameplay_entity_ids_per_tile<TILE_MAP_WIDTH,TILE_MAP_HEIGHT,MAX_GAMEPLAY_ENTITIES,MAX_COLLISIONS_PER_TILE>();
 
   #ifdef _DEBUG
@@ -138,6 +137,12 @@ int main()
   all_gameplay_entities->update_position_by_offset( 12, sf::Vector2f(test_tile_map->tile_size_x * 13, 8 * test_tile_map->tile_size_y) );
   all_gameplay_entities->update_position_by_offset( 13, sf::Vector2f(test_tile_map->tile_size_x * 8, 5 * test_tile_map->tile_size_y) );
   all_gameplay_entities->update_position_by_offset( 14, sf::Vector2f(test_tile_map->tile_size_x * 4, 9 * test_tile_map->tile_size_y) );
+
+
+  float timestep;
+  float intersection_time;
+  entity_collision_input* const all_entity_collision_data = new entity_collision_input[MAX_GAMEPLAY_ENTITIES];
+  entity_collision* const all_entity_collisions = new entity_collision[TILE_MAP_COUNT * MAX_COLLISIONS_PER_TILE];
 
 
 
@@ -243,50 +248,81 @@ int main()
 
     /* collision update loop */
 
-    tile_to_gameplay_entities->update(*test_tile_map, *all_gameplay_entities, gameplay_entity_id_to_tile_bucket_index_of_first_vertex);
+    tile_to_gameplay_entities->update(*test_tile_map, *all_gameplay_entities);
     sf::Vector2f velocity_cache[MAX_GAMEPLAY_ENTITIES];
     memcpy(&velocity_cache, all_gameplay_entities->velocities, sizeof(all_gameplay_entities->velocities));
+    timestep = elapsed_frame_time_seconds;
+    int chain_collision_count = 0;
+    int collision_count;
 
-    // start loop
-
-    float timestep = elapsed_frame_time_seconds;
-    entity_collision_input* const all_entity_collision_data = new entity_collision_input[MAX_GAMEPLAY_ENTITIES];
-    for(int i=0; i < MAX_GAMEPLAY_ENTITIES; ++i)
+    while ( (timestep > 0.0f) && (chain_collision_count < MAX_CHAIN_COLLISIONS) )
     {
-      all_entity_collision_data[i].velocity = all_gameplay_entities->velocities[i];
+      // query for collision data
+      for(int i=0; i < MAX_GAMEPLAY_ENTITIES; ++i)
+      {
+        all_entity_collision_data[i].velocity = all_gameplay_entities->velocities[i];
 
-      all_entity_collision_data[i].collision_vertices[0] = all_gameplay_entities->collision_vertices[(i*4) + 0];
-      all_entity_collision_data[i].collision_vertices[1] = all_gameplay_entities->collision_vertices[(i*4) + 1];
-      all_entity_collision_data[i].collision_vertices[2] = all_gameplay_entities->collision_vertices[(i*4) + 2];
-      all_entity_collision_data[i].collision_vertices[3] = all_gameplay_entities->collision_vertices[(i*4) + 3];
+        all_entity_collision_data[i].collision_vertices[0] = all_gameplay_entities->collision_vertices[(i*4) + 0];
+        all_entity_collision_data[i].collision_vertices[1] = all_gameplay_entities->collision_vertices[(i*4) + 1];
+        all_entity_collision_data[i].collision_vertices[2] = all_gameplay_entities->collision_vertices[(i*4) + 2];
+        all_entity_collision_data[i].collision_vertices[3] = all_gameplay_entities->collision_vertices[(i*4) + 3];
+      }
+
+      collision_count = calculate_collisions<MAX_GAMEPLAY_ENTITIES,MAX_COLLISIONS_PER_TILE,TILE_MAP_WIDTH,TILE_MAP_HEIGHT>(all_entity_collision_data,all_entity_collisions,timestep,*test_tile_map,tile_to_gameplay_entities,all_gameplay_entities->is_garbage_flags);
+      if (collision_count == 0)
+      {
+        intersection_time = timestep;
+      }
+      else
+      {
+        intersection_time = all_entity_collisions[0].intersection_time;
+      }
+
+      // !!! forgot to handle wall collisions as collisions
+      // find smallest collision time
+      for(int i=0; i < collision_count; ++i)
+      {
+        if (all_entity_collisions[i].intersection_time < intersection_time) intersection_time = all_entity_collisions[i].intersection_time;
+      }
+
+      all_gameplay_entities->update_positions_by_velocity(intersection_time);
+
+      // resolve collisions
+      for(int i=0; i < collision_count; ++i)
+      {
+        if (all_entity_collisions[i].intersection_time == intersection_time)
+        {
+          // set new velocites
+          if(all_entity_collisions[i].right_of_way_id >= 0)
+          {
+            int non_right_of_way_id = (all_entity_collisions[i].entity_ids[0] != all_entity_collisions[i].right_of_way_id) ? all_entity_collisions[i].entity_ids[0] : all_entity_collisions[i].entity_ids[1];
+
+            all_gameplay_entities->velocities[non_right_of_way_id] = sf::Vector2f(0.0f,0.0f); // for testing
+          }
+          else
+          {
+            // set both velocities
+            int first_id  = all_entity_collisions[i].entity_ids[0];
+            int second_id = all_entity_collisions[i].entity_ids[1];
+
+            sf::Vector2f collision_velocity( (all_entity_collision_data[first_id].velocity.x + all_entity_collision_data[second_id].velocity.x) / 2.0f,
+                                             (all_entity_collision_data[first_id].velocity.y + all_entity_collision_data[second_id].velocity.y) / 2.0f);
+
+            all_gameplay_entities->velocities[first_id]  = collision_velocity;
+            all_gameplay_entities->velocities[second_id] = collision_velocity;
+          }
+
+          // commit gameplay event?
+        }
+      }
+
+      chain_collision_count += (collision_count + static_cast<int>(collision_count == 0)); // make sure at least increment by 1
+      timestep -= intersection_time;
     }
 
-    // !!! collisions will most likely need to be reset when memory is no longer dynamic
-    entity_collision* const all_entity_collisions = new entity_collision[TILE_MAP_COUNT * MAX_COLLISIONS_PER_TILE];
-
-    calculate_collisions<MAX_GAMEPLAY_ENTITIES,MAX_COLLISIONS_PER_TILE,TILE_MAP_WIDTH,TILE_MAP_HEIGHT>(all_entity_collision_data,all_entity_collisions,timestep,*test_tile_map,tile_to_gameplay_entities);
-
-    //collision_line* const all_collision_lines_x_axis = new collision_line[(MAX_GAMEPLAY_ENTITIES * 4) / 2];
-    //collision_line* const all_collision_lines_y_axis = new collision_line[(MAX_GAMEPLAY_ENTITIES * 4) / 2];
-
-    //generate_collision_lines(all_entity_collision_data, all_collision_lines_x_axis, all_collision_lines_y_axis, timestep, MAX_GAMEPLAY_ENTITIES);
-    
-    //update_collision_lines_with_walls<true, (MAX_GAMEPLAY_ENTITIES * 4) / 2, TILE_MAP_WIDTH, TILE_MAP_HEIGHT>(all_collision_lines_x_axis, *test_tile_map);
-    //update_collision_lines_with_walls<false,(MAX_GAMEPLAY_ENTITIES * 4) / 2, TILE_MAP_WIDTH, TILE_MAP_HEIGHT>(all_collision_lines_y_axis, *test_tile_map);
+    memcpy(all_gameplay_entities->velocities, &velocity_cache, sizeof(all_gameplay_entities->velocities));
 
 
-    // calculate collisions   input: {collision_data}  =>  output: {entity_id_a, entity_id_b, float intersection_time}
-
-
-    // remember: don't forget to handle garbage entity values
-
-    all_gameplay_entities->update_positions_by_velocity(timestep);
-
-
-    // end of loop
-
-    for(int i=0; i < MAX_GAMEPLAY_ENTITIES; ++i)
-      all_gameplay_entities->velocities[i] = velocity_cache[i];
 
     // commit other gameplay events? (examples: timed bomb detonating, Q-ability activated)
     // process gameplay events?

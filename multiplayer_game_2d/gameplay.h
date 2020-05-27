@@ -30,16 +30,16 @@ struct gameplay_entities
   gameplay_entity_type types[p_max_size] = {gameplay_entity_type::NONE}; // type of gameplay entity that's also used to specify row in sprite_sheet
   int animation_indexes[p_max_size] = {0};                                                                                         // current frame for animation
   sf::Vector2f velocities[p_max_size];                                                                                             // how many pixels per second to move in x and y directions
-  bool is_garbage_flags[p_max_size];                                                                                               // memory at this index is overwritable when true
+  std::bitset<p_max_size> is_garbage_flags;
 
 
   gameplay_entities(const char* sprite_sheet_texture_file_path, const int p_sprite_sheet_side_length) : sprite_sheet_side_length(p_sprite_sheet_side_length)
   {
     sprite_sheet_texture.loadFromFile(sprite_sheet_texture_file_path);
 
-    for(auto& garbage_flag : is_garbage_flags)
+    for(int i=0; i < p_max_size; ++i)
     {
-      garbage_flag = true;
+      is_garbage_flags[i] = true;
     }
 
     // need guarantee default values in case some memory never filled
@@ -331,7 +331,6 @@ struct tile_map
 
 
 
-
 /* collision stuff */
 template<int p_tile_map_width, int p_tile_map_height, int p_max_gameplay_entities, int p_max_collisions_per_tile>
 struct gameplay_entity_ids_per_tile
@@ -348,10 +347,9 @@ struct gameplay_entity_ids_per_tile
     off_map_bitfield.reset();
   }
 
-  inline void update(const tile_map<p_tile_map_width, p_tile_map_height>& p_tile_map, const gameplay_entities<p_max_gameplay_entities>& p_game_entities, int (&p_gameplay_entity_id_to_tile_bucket_index_of_first_vertex)[p_max_gameplay_entities])
+  void update(const tile_map<p_tile_map_width, p_tile_map_height>& p_tile_map, const gameplay_entities<p_max_gameplay_entities>& p_game_entities)
   {
     memset(tile_buckets, -1, sizeof(tile_buckets));
-    memset(p_gameplay_entity_id_to_tile_bucket_index_of_first_vertex, -1, sizeof(p_gameplay_entity_id_to_tile_bucket_index_of_first_vertex));
     off_map_bitfield.reset();
 
     for(current_collision_vertex=0; current_collision_vertex < p_game_entities.vertex_count; ++current_collision_vertex) // vertex_count is same as collision_vertex_count
@@ -377,11 +375,6 @@ struct gameplay_entity_ids_per_tile
       current_tile_bucket_index = current_tile_index * p_max_collisions_per_tile;
       current_max_tile_bucket_index_limit = current_tile_bucket_index + p_max_collisions_per_tile;
 
-      if( (current_collision_vertex % 4) == 0 ) // checking if top-left vertex
-      {
-        p_gameplay_entity_id_to_tile_bucket_index_of_first_vertex[current_gameplay_entity_id] = current_tile_index;
-      }
-
       // find open tile_bucket for current_tile_index
       for(; ( current_tile_bucket_index < current_max_tile_bucket_index_limit )
                         && (tile_buckets[current_tile_bucket_index] != -1)
@@ -391,82 +384,6 @@ struct gameplay_entity_ids_per_tile
     }
 
   }
-
-  inline void update(const tile_map<p_tile_map_width,p_tile_map_height>& p_tile_map, const gameplay_entities<p_max_gameplay_entities>& p_game_entities, int (&p_gameplay_entity_id_to_tile_bucket_index_of_first_vertex)[p_max_gameplay_entities], const int target_gameplay_entity_id, const int first_vertex_bucket_index)
-  {
-    current_potential_bucket_indexes[0] = first_vertex_bucket_index;
-    current_potential_bucket_indexes[1] = first_vertex_bucket_index + p_max_collisions_per_tile;
-    current_potential_bucket_indexes[2] = current_potential_bucket_indexes[1] + (p_max_collisions_per_tile * p_tile_map_width);
-    current_potential_bucket_indexes[3] = current_potential_bucket_indexes[2] - p_max_collisions_per_tile;
-
-    for(auto& potential_vertex_bucket_index : current_potential_bucket_indexes)
-    {
-      // remove and re-sort target target_gameplay_entity_id in bucket index and then the other potential buckets
-      if (potential_vertex_bucket_index <= ( (p_max_collisions_per_tile * p_tile_map.tile_count) - p_max_collisions_per_tile ) )
-      {
-        current_gameplay_entity_id_bucket_index_limit = potential_vertex_bucket_index + p_max_collisions_per_tile;
-
-        // find bucket with target target_gameplay_entity_id then swap until end of bucket
-        for(current_tile_bucket_index=potential_vertex_bucket_index; current_tile_bucket_index < current_gameplay_entity_id_bucket_index_limit; ++current_tile_bucket_index)
-        {
-          if(tile_buckets[current_tile_bucket_index] == -1) break; // the rest of the bucket is empty
-     
-          if(tile_buckets[current_tile_bucket_index] == target_gameplay_entity_id)
-          {
-            // swap until next bucket index is the current_gameplay_entity_id_bucket_index_limit then set last value in bucket as -1
-            for(; (current_tile_bucket_index+1) < current_gameplay_entity_id_bucket_index_limit; ++current_tile_bucket_index)
-            {
-              tile_buckets[current_tile_bucket_index] = tile_buckets[current_tile_bucket_index+1];
-            }
-            tile_buckets[current_gameplay_entity_id_bucket_index_limit - 1] = -1; // this is always true because removing an element implies a non full bucket
-            break;
-          }
-        }
-      }
-    }
-
-    // update collision hash with new positions for target_gameplay_entity
-    p_gameplay_entity_id_to_tile_bucket_index_of_first_vertex[target_gameplay_entity_id] = -1;
-    off_map_bitfield[target_gameplay_entity_id] = false;
-
-    int collision_vertex_limit = (target_gameplay_entity_id * 4) + 4;
-    for(current_collision_vertex=(target_gameplay_entity_id * 4); current_collision_vertex < collision_vertex_limit; ++current_collision_vertex)
-    {
-      current_gameplay_entity_id = current_collision_vertex / 4;
-      if (p_game_entities.is_garbage_flags[current_gameplay_entity_id]) continue;
-
-      // check if vertex is not visible
-      if(   (p_game_entities.collision_vertices[current_collision_vertex].y < 0) 
-         || (p_game_entities.collision_vertices[current_collision_vertex].y > ( (p_tile_map.height * p_tile_map.tile_size_y) - 1 ))
-         || (p_game_entities.collision_vertices[current_collision_vertex].x < 0)
-         || (p_game_entities.collision_vertices[current_collision_vertex].x > ( (p_tile_map.width  * p_tile_map.tile_size_x) - 1 ))
-        )
-      {
-        off_map_bitfield[current_gameplay_entity_id] = true;
-        continue;
-      }
-
-      current_y_index = static_cast<int>(p_game_entities.collision_vertices[current_collision_vertex].y / p_tile_map.tile_size_y);
-      current_x_index = static_cast<int>(p_game_entities.collision_vertices[current_collision_vertex].x / p_tile_map.tile_size_x);
-
-      current_tile_index = (current_y_index * p_tile_map.width) + current_x_index;
-      current_tile_bucket_index = current_tile_index * p_max_collisions_per_tile;
-      current_max_tile_bucket_index_limit = current_tile_bucket_index + p_max_collisions_per_tile;
-
-      if( (current_collision_vertex % 4) == 0 ) // checking if top-left vertex
-      {
-        p_gameplay_entity_id_to_tile_bucket_index_of_first_vertex[current_gameplay_entity_id] = current_tile_index;
-      }
-
-      // find open tile_bucket for current_tile_index
-      for(; ( current_tile_bucket_index < current_max_tile_bucket_index_limit )
-                        && (tile_buckets[current_tile_bucket_index] != -1)
-                        && (tile_buckets[current_tile_bucket_index] != current_gameplay_entity_id); ++current_tile_bucket_index) {};
-
-      tile_buckets[current_tile_bucket_index] = current_gameplay_entity_id;
-    }
-  } // update with gameplay_id
-
   #ifdef _DEBUG
     inline void print_tile_buckets()
     {
@@ -494,7 +411,6 @@ struct gameplay_entity_ids_per_tile
     int current_y_index;
     int current_x_index;
     int current_max_tile_bucket_index_limit;
-    int current_potential_bucket_indexes[4];
     int current_gameplay_entity_id_bucket_index_limit;
 }; // gameplay_entity_ids_per_tile
 
@@ -502,7 +418,12 @@ struct entity_collision_input
 {
   sf::Vector2f collision_vertices[4];
   sf::Vector2f velocity;
-  //bool         is_garbage;
+
+  sf::Vector2f vertex_position_at_timestep(const int vertex_index, const float timestep) const
+  {
+    // assert if  vertex_index > 3?
+    return sf::Vector2f(velocity.x * timestep, velocity.y * timestep) + collision_vertices[vertex_index];
+  }
 };
 
 struct entity_collision
@@ -512,29 +433,26 @@ struct entity_collision
   int   right_of_way_id;
 };
 
-// only for single axis...first vertex is left or top vertex and second vertex is right or bottom vertex depending on axis
-struct collision_line
-{
-  sf::Vector2f vertices[2];
-};
-
 template<int max_entity_count, int max_collision_per_tile_count, int tile_map_width, int tile_map_height>
-void calculate_collisions(const entity_collision_input* const collision_inputs, entity_collision* const output_collisions, const float timestep, const tile_map<tile_map_width,tile_map_height>& p_tile_map, gameplay_entity_ids_per_tile<tile_map_width,tile_map_height,max_entity_count,max_collision_per_tile_count>* const tile_map_hash)
+int calculate_collisions(const entity_collision_input* const collision_inputs, entity_collision* const output_collisions, const float timestep, const tile_map<tile_map_width,tile_map_height>& p_tile_map, gameplay_entity_ids_per_tile<tile_map_width,tile_map_height,max_entity_count,max_collision_per_tile_count>* const tile_map_hash, const std::bitset<max_entity_count>& entity_garbage_flags)
 {
   // @remember: current max entity speed target is 5 tiles per second (1 tile per .2 seconds)
   // @remember:   and current ping target must be below 100 milliseconds (.1 second)
   // @remember:   and current minimum framerate target is 25 fps (1 frame per .04 seconds)
   // @remember:   so if these targets change might need to handle collision of player being able to move a tile per frame
   // @remember:     that can be handled by inserting entity_id in range of tile_map_indexes (rather than just 2) when calculating intersection time
-
+  
   sf::Vector2f velocity_expanded_vertices[4];
   int y_index;
   int x_index;
   int tile_map_indexes[2];
+  int collision_index = 0;
 
-  // expand collision vertices
-  for(int entity_id=0,collision_index=0; entity_id < max_entity_count; ++entity_id)
+  for(int entity_id=0; entity_id < max_entity_count; ++entity_id)
   {
+    if (entity_garbage_flags[entity_id] == true) continue;
+
+    // expand collision vertices
     velocity_expanded_vertices[0] = collision_inputs[entity_id].collision_vertices[0] + (collision_inputs[entity_id].velocity * timestep * static_cast<float>( (collision_inputs[entity_id].velocity.y < 0.0f) || (collision_inputs[entity_id].velocity.x < 0.0f) ));
     velocity_expanded_vertices[1] = collision_inputs[entity_id].collision_vertices[1] + (collision_inputs[entity_id].velocity * timestep * static_cast<float>( (collision_inputs[entity_id].velocity.y < 0.0f) || (collision_inputs[entity_id].velocity.x > 0.0f) ));
     velocity_expanded_vertices[2] = collision_inputs[entity_id].collision_vertices[2] + (collision_inputs[entity_id].velocity * timestep * static_cast<float>( (collision_inputs[entity_id].velocity.y > 0.0f) || (collision_inputs[entity_id].velocity.x > 0.0f) ));
@@ -595,12 +513,12 @@ void calculate_collisions(const entity_collision_input* const collision_inputs, 
           already_in_tile = true;
           continue;
         }
-        else if (other_entity_id == -1) // end of bucket
+        else if (other_entity_id == -1) // no more entities in bucket
         {
           tile_map_hash->tile_buckets[tile_bucket_index] += ( (entity_id+1) * static_cast<int>(!already_in_tile) ); // entity_id+1 is because adding to known -1 value
           break;
         }
-        else
+        else  // found possible collision
         {
           // calculate intersection time using: gameplay_entity_position(time) = gameplay_entity_position(0) + (velocity * time)
           //                position1(0) + (velocity1 * time) = position2(0) + (velocity2 * time)
@@ -608,7 +526,7 @@ void calculate_collisions(const entity_collision_input* const collision_inputs, 
 
           if (collision_inputs[entity_id].velocity == collision_inputs[other_entity_id].velocity) continue;  // impossible to intersect
 
-          // decide vertices (all ties are arbitrary)
+          // decide position vertices (all ties are arbitrary)
           sf::Vector2f current_entity_origin = collision_inputs[entity_id].collision_vertices[0];
           sf::Vector2f other_entity_origin   = collision_inputs[other_entity_id].collision_vertices[0];
 
@@ -625,29 +543,29 @@ void calculate_collisions(const entity_collision_input* const collision_inputs, 
                                    + ( other_entity_id * static_cast<int>(most_left_entity_id != other_entity_id) );
 
 
-          sf::Vector2f current_entity_vertex;
-          sf::Vector2f other_entity_vertex;
+          sf::Vector2f entity_position_vertex;
+          sf::Vector2f other_entity_position_vertex;
 
           if(entity_id == most_up_entity_id)
           {
             if(entity_id == most_left_entity_id)
             {
-              current_entity_vertex = collision_inputs[entity_id].collision_vertices[2];
+              entity_position_vertex = collision_inputs[entity_id].collision_vertices[2];
             }
             else // entity is most up and most right
             {
-              current_entity_vertex = collision_inputs[entity_id].collision_vertices[3];
+              entity_position_vertex = collision_inputs[entity_id].collision_vertices[3];
             }
           }
           else // entity is most down
           {
             if(entity_id == most_left_entity_id)
             {
-              current_entity_vertex = collision_inputs[entity_id].collision_vertices[1];
+              entity_position_vertex = collision_inputs[entity_id].collision_vertices[1];
             }
             else // entity is most down and most right
             {
-              current_entity_vertex = collision_inputs[entity_id].collision_vertices[0];
+              entity_position_vertex = collision_inputs[entity_id].collision_vertices[0];
             }
           }
 
@@ -655,33 +573,30 @@ void calculate_collisions(const entity_collision_input* const collision_inputs, 
           {
             if(other_entity_id == most_left_entity_id)
             {
-              other_entity_vertex = collision_inputs[other_entity_id].collision_vertices[2];
+              other_entity_position_vertex = collision_inputs[other_entity_id].collision_vertices[2];
             }
             else // other entity is most up and most right
             {
-              other_entity_vertex = collision_inputs[other_entity_id].collision_vertices[3];
+              other_entity_position_vertex = collision_inputs[other_entity_id].collision_vertices[3];
             }
           }
           else // other entity is most down
           {
             if(other_entity_id == most_left_entity_id)
             {
-              other_entity_vertex = collision_inputs[other_entity_id].collision_vertices[1];
+              other_entity_position_vertex = collision_inputs[other_entity_id].collision_vertices[1];
             }
             else // other entity is most down and most right
             {
-              other_entity_vertex = collision_inputs[other_entity_id].collision_vertices[0];
+              other_entity_position_vertex = collision_inputs[other_entity_id].collision_vertices[0];
             }
           }
 
           // calculate intersection times
-          //sf::Vector2f intersection_times = (current_entity_vertex - other_entity_vertex) / (collision_inputs[entity_id].velocity - collision_inputs[other_entity_id].velocity);
-          sf::Vector2f intersection_times( (current_entity_vertex.x - other_entity_vertex.x) / (collision_inputs[entity_id].velocity.x - collision_inputs[other_entity_id].velocity.x),
-                                           (current_entity_vertex.y - other_entity_vertex.y) / (collision_inputs[entity_id].velocity.y - collision_inputs[other_entity_id].velocity.y)
+          sf::Vector2f intersection_times( (entity_position_vertex.x - other_entity_position_vertex.x) / (collision_inputs[entity_id].velocity.x - collision_inputs[other_entity_id].velocity.x),
+                                           (entity_position_vertex.y - other_entity_position_vertex.y) / (collision_inputs[entity_id].velocity.y - collision_inputs[other_entity_id].velocity.y)
                                          );
           
-          // if single axis velocity use that value (validate is real number)
-
           float intersection_time = -1.0f;
 
           if (collision_inputs[entity_id].velocity.x)
@@ -696,33 +611,57 @@ void calculate_collisions(const entity_collision_input* const collision_inputs, 
           entity_collision current_collision;
           current_collision.entity_ids[0] = entity_id;
           current_collision.entity_ids[1] = other_entity_id;
-          current_collision.intersection_time = intersection_time;
           current_collision.right_of_way_id = -1;
 
           // !!! handle NAN for all scenarios
           if ( (intersection_time >= 0.0f) && (intersection_time <= timestep) && isfinite(intersection_time) ) // check if valid intersection time
           {
+            current_collision.intersection_time = intersection_time;
+
             if (intersection_times.x && intersection_times.y && isfinite(intersection_times.x) && isfinite(intersection_times.y)) // right-of-way case
             {
               // continue unless confirm overlap after intersection_time
 
-              if(intersection_times.x)
+              if(intersection_times.x == intersection_time)
               {
                 // confirm y position of other entity is within current entity y range after intersection time
-                float other_entity_y_position = other_entity_vertex.y * (collision_inputs[other_entity_id].velocity.y * timestep);
+                float other_entity_y_position = other_entity_position_vertex.y + (collision_inputs[other_entity_id].velocity.y * intersection_time);
                 bool is_still_overlap = (collision_inputs[entity_id].collision_vertices[0].y <= other_entity_y_position) && (other_entity_y_position >= collision_inputs[entity_id].collision_vertices[2].y);
 
                 if (!is_still_overlap) continue; 
+
+                if (
+                     ( (collision_inputs[entity_id].velocity.x > 0.0f) && (collision_inputs[entity_id].vertex_position_at_timestep(1,intersection_time).x > collision_inputs[other_entity_id].vertex_position_at_timestep(0,intersection_time).x) ) ||
+                     ( (collision_inputs[entity_id].velocity.x < 0.0f) && (collision_inputs[entity_id].vertex_position_at_timestep(0,intersection_time).x < collision_inputs[other_entity_id].vertex_position_at_timestep(1,intersection_time).x) )
+                   )
+                {
+                  current_collision.right_of_way_id = entity_id;
+                }
+                else
+                {
+                  current_collision.right_of_way_id = other_entity_id;
+                }
               }
               else
               {
                 // confirm x position of other entity is within current entity x range after intersection time
-                float other_entity_x_position = other_entity_vertex.x * (collision_inputs[other_entity_id].velocity.x * timestep);
+                float other_entity_x_position = other_entity_position_vertex.x + (collision_inputs[other_entity_id].velocity.x * intersection_time);
                 bool is_still_overlap = (collision_inputs[entity_id].collision_vertices[0].x >= other_entity_x_position) && (other_entity_x_position <= collision_inputs[entity_id].collision_vertices[1].x);
 
                 if (!is_still_overlap) continue;
+
+                if (
+                     ( (collision_inputs[entity_id].velocity.y < 0.0f) && (collision_inputs[entity_id].vertex_position_at_timestep(0,intersection_time).y < collision_inputs[other_entity_id].vertex_position_at_timestep(2,intersection_time).y) ) ||
+                     ( (collision_inputs[entity_id].velocity.y > 0.0f) && (collision_inputs[entity_id].vertex_position_at_timestep(2,intersection_time).y > collision_inputs[other_entity_id].vertex_position_at_timestep(0,intersection_time).y) )
+                   )
+                {
+                  current_collision.right_of_way_id = entity_id;
+                }
+                else
+                {
+                  current_collision.right_of_way_id = other_entity_id;
+                }
               }
-              current_collision.right_of_way_id = other_entity_id;  // ??? might not make sense anymore
             }
 
             output_collisions[collision_index] = current_collision;
@@ -732,84 +671,8 @@ void calculate_collisions(const entity_collision_input* const collision_inputs, 
       }
     }
   }
-}
 
-void generate_collision_lines(const entity_collision_input* const all_entity_collision_data, collision_line* const all_collision_lines_x_axis, collision_line* const all_collision_lines_y_axis, const float timestep, const int input_size)
-{
-  // use velocity to decide changing vertex
-  // set changing vertex to changing vertex + timestep
-  // copy other vertex
-
-  for(int input_index=0,output_index=0; input_index < input_size; ++input_index, output_index+=2)
-  {
-    // top left --- top right
-    all_collision_lines_x_axis[output_index].vertices[0] = all_entity_collision_data[input_index].collision_vertices[0] + ( (all_entity_collision_data->velocity * timestep) * static_cast<float>(all_entity_collision_data->velocity.y < 0.0f) );
-    all_collision_lines_x_axis[output_index].vertices[1] = all_entity_collision_data[input_index].collision_vertices[1] + ( (all_entity_collision_data->velocity * timestep) * static_cast<float>(all_entity_collision_data->velocity.y < 0.0f) );
-
-    // top right --- bottom right
-    all_collision_lines_y_axis[output_index].vertices[0] = all_entity_collision_data[input_index].collision_vertices[1] + ( (all_entity_collision_data->velocity * timestep) * static_cast<float>(all_entity_collision_data->velocity.x > 0.0f) );
-    all_collision_lines_y_axis[output_index].vertices[1] = all_entity_collision_data[input_index].collision_vertices[2] + ( (all_entity_collision_data->velocity * timestep) * static_cast<float>(all_entity_collision_data->velocity.x > 0.0f) );
-
-    // bottom left --- bottom right
-    all_collision_lines_x_axis[output_index+1].vertices[0] = all_entity_collision_data[input_index].collision_vertices[3] + ( (all_entity_collision_data->velocity * timestep) * static_cast<float>(all_entity_collision_data->velocity.y > 0.0f) );
-    all_collision_lines_x_axis[output_index+1].vertices[1] = all_entity_collision_data[input_index].collision_vertices[2] + ( (all_entity_collision_data->velocity * timestep) * static_cast<float>(all_entity_collision_data->velocity.y > 0.0f) );
-
-    // top left --- bottom left
-    all_collision_lines_y_axis[output_index+1].vertices[0] = all_entity_collision_data[input_index].collision_vertices[0] + ( (all_entity_collision_data->velocity * timestep) * static_cast<float>(all_entity_collision_data->velocity.x < 0.0f) );
-    all_collision_lines_y_axis[output_index+1].vertices[1] = all_entity_collision_data[input_index].collision_vertices[3] + ( (all_entity_collision_data->velocity * timestep) * static_cast<float>(all_entity_collision_data->velocity.x < 0.0f) );
-  }
-}
-
-template<bool is_x_axis, int entity_collision_lines_size, int tile_map_width, int tile_map_height>
-void update_collision_lines_with_walls(collision_line* const entity_collision_lines, const tile_map<tile_map_width,tile_map_height>& p_tile_map)
-{
-  int y_index;
-  int x_index;
-  int tile_index;
-
-  for(int i=0; i < entity_collision_lines_size; ++i)
-  {
-    /* 
-       for both vertices
-       calculate vertex tile index
-       check if tile is a wall
-       if yes chop the collision line
-    */
-
-    // left or top vertex
-    y_index = static_cast<int>(entity_collision_lines[i].vertices[0].y / p_tile_map.tile_size_y);
-    x_index = static_cast<int>(entity_collision_lines[i].vertices[0].x / p_tile_map.tile_size_x);
-    tile_index = (y_index * p_tile_map.width) + x_index;
-
-    if ( p_tile_map.bitmap[tile_index] == static_cast<int>(tile_map_bitmap_type::WALL) )
-    {
-      if (is_x_axis)
-      {
-        entity_collision_lines[i].vertices[0].x = p_tile_map.vertex_buffer[(4 * (tile_index + 1)) + 1].position.x;
-      }
-      else
-      {
-        entity_collision_lines[i].vertices[0].y = p_tile_map.vertex_buffer[(4 * (tile_index + 1)) + 2].position.y;
-      }
-    }
-
-    // right or bottom vertex
-    y_index = static_cast<int>(entity_collision_lines[i].vertices[1].y / p_tile_map.tile_size_y);
-    x_index = static_cast<int>(entity_collision_lines[i].vertices[1].x / p_tile_map.tile_size_x);
-    tile_index = (y_index * p_tile_map.width) + x_index;
-
-    if ( p_tile_map.bitmap[tile_index] == static_cast<int>(tile_map_bitmap_type::WALL) )
-    {
-      if (is_x_axis)
-      {
-        entity_collision_lines[i].vertices[1].x = p_tile_map.vertex_buffer[(4 * (tile_index + 1))].position.x;
-      }
-      else
-      {
-        entity_collision_lines[i].vertices[1].y = p_tile_map.vertex_buffer[(4 * (tile_index + 1))].position.y;
-      }
-    }
-  }
+  return collision_index;
 }
 
 
