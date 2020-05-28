@@ -3,6 +3,7 @@
 #include <iostream>
 #include <string.h>
 #include <windows.h>
+#include <bitset>
 #include "gameplay.h"
 
 
@@ -254,9 +255,15 @@ int main()
     timestep = elapsed_frame_time_seconds;
     int chain_collision_count = 0;
     int collision_count;
+    std::bitset<MAX_GAMEPLAY_ENTITIES> entity_is_wall;
+    bool collision_matrix[MAX_GAMEPLAY_ENTITIES][MAX_GAMEPLAY_ENTITIES];  // @optimize
+
 
     while ( (timestep > 0.0f) && (chain_collision_count < MAX_CHAIN_COLLISIONS) )
     {
+      entity_is_wall.reset();
+      memset(collision_matrix, false, sizeof(collision_matrix));
+
       // query for collision data
       for(int i=0; i < MAX_GAMEPLAY_ENTITIES; ++i)
       {
@@ -278,7 +285,6 @@ int main()
         intersection_time = all_entity_collisions[0].intersection_time;
       }
 
-      // !!! forgot to handle wall collisions as collisions
       // find smallest collision time
       for(int i=0; i < collision_count; ++i)
       {
@@ -293,31 +299,42 @@ int main()
         if (all_entity_collisions[i].intersection_time == intersection_time)
         {
           // set new velocites
-          if(all_entity_collisions[i].right_of_way_id >= 0)
+          if( (all_entity_collisions[i].entity_ids[1] == -1) || (entity_is_wall[ all_entity_collisions[i].entity_ids[1] ]) ) // wall collision check
+          {
+            all_gameplay_entities->velocities[all_entity_collisions[i].entity_ids[0]] = sf::Vector2f(0.0f,0.0f);
+            entity_is_wall[all_entity_collisions[i].entity_ids[0]] = true;
+          }
+          else if(all_entity_collisions[i].right_of_way_id >= 0)
           {
             int non_right_of_way_id = (all_entity_collisions[i].entity_ids[0] != all_entity_collisions[i].right_of_way_id) ? all_entity_collisions[i].entity_ids[0] : all_entity_collisions[i].entity_ids[1];
 
-            all_gameplay_entities->velocities[non_right_of_way_id] = sf::Vector2f(0.0f,0.0f); // for testing
+            all_gameplay_entities->velocities[non_right_of_way_id] = sf::Vector2f(0.0f,0.0f);
+            entity_is_wall[non_right_of_way_id] = true;
           }
           else
           {
-            // set both velocities
             int first_id  = all_entity_collisions[i].entity_ids[0];
             int second_id = all_entity_collisions[i].entity_ids[1];
 
+            if (collision_matrix[first_id][second_id]) continue;
+            
             sf::Vector2f collision_velocity( (all_entity_collision_data[first_id].velocity.x + all_entity_collision_data[second_id].velocity.x) / 2.0f,
                                              (all_entity_collision_data[first_id].velocity.y + all_entity_collision_data[second_id].velocity.y) / 2.0f);
 
             all_gameplay_entities->velocities[first_id]  = collision_velocity;
             all_gameplay_entities->velocities[second_id] = collision_velocity;
+
+            collision_matrix[first_id][second_id] = true;
+            collision_matrix[second_id][first_id] = true;
           }
 
           // commit gameplay event?
         }
       }
 
-      chain_collision_count += (collision_count + static_cast<int>(collision_count == 0)); // make sure at least increment by 1
+      chain_collision_count += (collision_count + static_cast<int>(collision_count == 0)); // make sure at least increment by 1 !!! should probably change this later
       timestep -= intersection_time;
+      tile_to_gameplay_entities->update(*test_tile_map, *all_gameplay_entities);
     }
 
     memcpy(all_gameplay_entities->velocities, &velocity_cache, sizeof(all_gameplay_entities->velocities));

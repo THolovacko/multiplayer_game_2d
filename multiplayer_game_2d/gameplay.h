@@ -452,6 +452,7 @@ int calculate_collisions(const entity_collision_input* const collision_inputs, e
   {
     if (entity_garbage_flags[entity_id] == true) continue;
 
+
     // expand collision vertices
     velocity_expanded_vertices[0] = collision_inputs[entity_id].collision_vertices[0] + (collision_inputs[entity_id].velocity * timestep * static_cast<float>( (collision_inputs[entity_id].velocity.y < 0.0f) || (collision_inputs[entity_id].velocity.x < 0.0f) ));
     velocity_expanded_vertices[1] = collision_inputs[entity_id].collision_vertices[1] + (collision_inputs[entity_id].velocity * timestep * static_cast<float>( (collision_inputs[entity_id].velocity.y < 0.0f) || (collision_inputs[entity_id].velocity.x > 0.0f) ));
@@ -467,6 +468,8 @@ int calculate_collisions(const entity_collision_input* const collision_inputs, e
     x_index = static_cast<int>(velocity_expanded_vertices[2].x / p_tile_map.tile_size_x);
     tile_map_indexes[1] = (y_index * p_tile_map.width) + x_index;
 
+    float wall_intersection_time = 0.0f;
+
     // handle wall collisions
     if ( p_tile_map.bitmap[tile_map_indexes[0]] == static_cast<int>(tile_map_bitmap_type::WALL) )
     {
@@ -475,12 +478,16 @@ int calculate_collisions(const entity_collision_input* const collision_inputs, e
         velocity_expanded_vertices[0].x = p_tile_map.vertex_buffer[(4 * (tile_map_indexes[0] + 1)) + 1].position.x;
         velocity_expanded_vertices[3].x = p_tile_map.vertex_buffer[(4 * (tile_map_indexes[0] + 1)) + 1].position.x;
         tile_map_indexes[0] += 1;
+
+        wall_intersection_time = (collision_inputs[entity_id].collision_vertices[0].x - velocity_expanded_vertices[0].x) / collision_inputs[entity_id].velocity.x;
       }
       else if(collision_inputs[entity_id].velocity.y < 0.0f)
       {
         velocity_expanded_vertices[0].y = p_tile_map.vertex_buffer[(4 * (tile_map_indexes[0] + 1)) + 2].position.y;
         velocity_expanded_vertices[1].y = p_tile_map.vertex_buffer[(4 * (tile_map_indexes[0] + 1)) + 2].position.y;
         tile_map_indexes[0] += p_tile_map.width;
+
+        wall_intersection_time = (collision_inputs[entity_id].collision_vertices[0].y - velocity_expanded_vertices[0].y) / collision_inputs[entity_id].velocity.y;
       }
     }
 
@@ -491,14 +498,30 @@ int calculate_collisions(const entity_collision_input* const collision_inputs, e
         velocity_expanded_vertices[1].x = p_tile_map.vertex_buffer[(4 * (tile_map_indexes[1] + 1))].position.x;
         velocity_expanded_vertices[2].x = p_tile_map.vertex_buffer[(4 * (tile_map_indexes[1] + 1))].position.x;
         tile_map_indexes[1] -= 1;
+
+        wall_intersection_time = (collision_inputs[entity_id].collision_vertices[1].x - velocity_expanded_vertices[1].x) / collision_inputs[entity_id].velocity.x;
       }
       else if(collision_inputs[entity_id].velocity.y > 0.0f)
       {
         velocity_expanded_vertices[2].y = p_tile_map.vertex_buffer[(4 * (tile_map_indexes[1] + 1))].position.y;
         velocity_expanded_vertices[3].y = p_tile_map.vertex_buffer[(4 * (tile_map_indexes[1] + 1))].position.y;
         tile_map_indexes[1] -= p_tile_map.width;
+
+        wall_intersection_time = (collision_inputs[entity_id].collision_vertices[2].y - velocity_expanded_vertices[2].y) / collision_inputs[entity_id].velocity.y;
       }
     }
+
+    if (wall_intersection_time)
+    {
+      entity_collision current_collision;
+      current_collision.entity_ids[0] = entity_id;
+      current_collision.entity_ids[1] = -1;
+      current_collision.right_of_way_id = -1;
+      current_collision.intersection_time = wall_intersection_time;
+      output_collisions[collision_index] = current_collision;
+      ++collision_index;
+    }
+
 
     // calculate intersection time with all ids in tile_map_hash using both tile_map_indexes
     for(auto& tile_map_index : tile_map_indexes)
