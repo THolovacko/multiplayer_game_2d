@@ -50,16 +50,16 @@ int main()
     static sf::Text game_entity_index_text[MAX_GAMEPLAY_ENTITIES];
   #endif
   
-  all_gameplay_entities->is_garbage_flags[0] = false;
-  all_gameplay_entities->is_garbage_flags[1] = true;
-  all_gameplay_entities->is_garbage_flags[2] = true;
-  all_gameplay_entities->is_garbage_flags[3] = false;
-  all_gameplay_entities->is_garbage_flags[4] = true;
-  all_gameplay_entities->is_garbage_flags[5] = true;
-  all_gameplay_entities->is_garbage_flags[6] = true;
-  all_gameplay_entities->is_garbage_flags[7] = true;
-  all_gameplay_entities->is_garbage_flags[8] = true;
-  all_gameplay_entities->is_garbage_flags[9] = true;
+  all_gameplay_entities->is_garbage_flags[0]  = false;
+  all_gameplay_entities->is_garbage_flags[1]  = true;
+  all_gameplay_entities->is_garbage_flags[2]  = true;
+  all_gameplay_entities->is_garbage_flags[3]  = false;
+  all_gameplay_entities->is_garbage_flags[4]  = true;
+  all_gameplay_entities->is_garbage_flags[5]  = true;
+  all_gameplay_entities->is_garbage_flags[6]  = true;
+  all_gameplay_entities->is_garbage_flags[7]  = true;
+  all_gameplay_entities->is_garbage_flags[8]  = true;
+  all_gameplay_entities->is_garbage_flags[9]  = true;
   all_gameplay_entities->is_garbage_flags[10] = true;
   all_gameplay_entities->is_garbage_flags[11] = true;
   all_gameplay_entities->is_garbage_flags[12] = true;
@@ -257,13 +257,11 @@ int main()
     int chain_collision_count = 0;
     int collision_count;
     std::bitset<MAX_GAMEPLAY_ENTITIES> entity_is_wall;
-    bool collision_matrix[MAX_GAMEPLAY_ENTITIES][MAX_GAMEPLAY_ENTITIES];  // @optimize
 
 
     while ( (timestep > 0.0f) && (chain_collision_count < MAX_CHAIN_COLLISIONS) )
     {
       entity_is_wall.reset();
-      memset(collision_matrix, false, sizeof(collision_matrix));
 
       // query for collision data
       for(int i=0; i < MAX_GAMEPLAY_ENTITIES; ++i)
@@ -312,16 +310,11 @@ int main()
             int first_id  = all_entity_collisions[i].entity_ids[0];
             int second_id = all_entity_collisions[i].entity_ids[1];
 
-            if (collision_matrix[first_id][second_id]) continue;
-
             sf::Vector2f collision_velocity( (all_entity_collision_data[first_id].velocity.x + all_entity_collision_data[second_id].velocity.x) / 2.0f,
                                              (all_entity_collision_data[first_id].velocity.y + all_entity_collision_data[second_id].velocity.y) / 2.0f);
 
             all_gameplay_entities->velocities[first_id]  = collision_velocity;
             all_gameplay_entities->velocities[second_id] = collision_velocity;
-
-            collision_matrix[first_id][second_id] = true;
-            collision_matrix[second_id][first_id] = true;
           }
 
           // commit gameplay event?

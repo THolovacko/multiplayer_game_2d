@@ -511,8 +511,7 @@ int calculate_collisions(const entity_collision_input* const collision_inputs, e
       }
     }
 
-    //if ( (wall_intersection_time > 0.0f) && (wall_intersection_time <= timestep) && isfinite(wall_intersection_time) )
-    if ( wall_intersection_time && (wall_intersection_time <= timestep) )
+    if ( wall_intersection_time && (std::abs(wall_intersection_time) <= timestep) )
     {
       entity_collision current_collision;
       current_collision.entity_ids[0] = entity_id;
@@ -637,8 +636,7 @@ int calculate_collisions(const entity_collision_input* const collision_inputs, e
           current_collision.entity_ids[1] = other_entity_id;
           current_collision.right_of_way_id = -1;
 
-          //if ( (intersection_time > 0.0f) && (intersection_time <= timestep) && isfinite(intersection_time) ) // check if valid intersection time
-          if ( intersection_time && (intersection_time <= timestep) ) // check if valid intersection time
+          if ( intersection_time && (std::abs(intersection_time) <= timestep) && isfinite(intersection_time)) // check if valid intersection time
           {
             current_collision.intersection_time = intersection_time;
 
