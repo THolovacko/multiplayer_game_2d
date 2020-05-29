@@ -332,13 +332,13 @@ struct tile_map
 
 
 /* collision stuff */
-template<int p_tile_map_width, int p_tile_map_height, int p_max_gameplay_entities, int p_max_collisions_per_tile>
+template<int p_tile_map_width, int p_tile_map_height, int p_max_gameplay_entities, int p_max_entities_per_tile>
 struct gameplay_entity_ids_per_tile
 {
   // @remember: the second vertex in tile is not considered overlapping the first vertex in the next tile; the same goes for the 3rd vertex of a tile not sharing position of the 4th vertex of the next tile
   // @remember:     ex) if the position of a gameplay vertex is same position as top-left vertex in tile, it is considered in that tile and not also in the previous tile
 
-  int tile_buckets[p_max_collisions_per_tile * p_max_gameplay_entities];
+  int tile_buckets[p_max_entities_per_tile * p_max_gameplay_entities];
   std::bitset<p_max_gameplay_entities> off_map_bitfield;  // gameplay entity is partially or fully off the tile map
 
   gameplay_entity_ids_per_tile()
@@ -372,8 +372,8 @@ struct gameplay_entity_ids_per_tile
       current_x_index = static_cast<int>(p_game_entities.collision_vertices[current_collision_vertex].x / p_tile_map.tile_size_x);
 
       current_tile_index = (current_y_index * p_tile_map.width) + current_x_index;
-      current_tile_bucket_index = current_tile_index * p_max_collisions_per_tile;
-      current_max_tile_bucket_index_limit = current_tile_bucket_index + p_max_collisions_per_tile;
+      current_tile_bucket_index = current_tile_index * p_max_entities_per_tile;
+      current_max_tile_bucket_index_limit = current_tile_bucket_index + p_max_entities_per_tile;
 
       // find open tile_bucket for current_tile_index
       for(; ( current_tile_bucket_index < current_max_tile_bucket_index_limit )
@@ -388,11 +388,11 @@ struct gameplay_entity_ids_per_tile
     inline void print_tile_buckets()
     {
       std::cout << "\n";
-      for(int i=0; i < p_max_collisions_per_tile * p_max_gameplay_entities; i+= p_max_collisions_per_tile)
+      for(int i=0; i < p_max_entities_per_tile * p_max_gameplay_entities; i+= p_max_entities_per_tile)
       {
-        std::cout << "Tile index: " << i/p_max_collisions_per_tile  << std::endl;
+        std::cout << "Tile index: " << i/p_max_entities_per_tile  << std::endl;
 
-        for(int collision_index=0; collision_index < p_max_collisions_per_tile; ++collision_index)
+        for(int collision_index=0; collision_index < p_max_entities_per_tile; ++collision_index)
         {
           int entity_id = tile_buckets[i + collision_index];
           //if (entity_id == -1) continue;
@@ -511,7 +511,8 @@ int calculate_collisions(const entity_collision_input* const collision_inputs, e
       }
     }
 
-    if (wall_intersection_time)
+    //if ( (wall_intersection_time > 0.0f) && (wall_intersection_time <= timestep) && isfinite(wall_intersection_time) )
+    if ( wall_intersection_time && (wall_intersection_time <= timestep) )
     {
       entity_collision current_collision;
       current_collision.entity_ids[0] = entity_id;
@@ -636,8 +637,8 @@ int calculate_collisions(const entity_collision_input* const collision_inputs, e
           current_collision.entity_ids[1] = other_entity_id;
           current_collision.right_of_way_id = -1;
 
-          // !!! handle NAN for all scenarios
-          if ( (intersection_time >= 0.0f) && (intersection_time <= timestep) && isfinite(intersection_time) ) // check if valid intersection time
+          //if ( (intersection_time > 0.0f) && (intersection_time <= timestep) && isfinite(intersection_time) ) // check if valid intersection time
+          if ( intersection_time && (intersection_time <= timestep) ) // check if valid intersection time
           {
             current_collision.intersection_time = intersection_time;
 

@@ -4,19 +4,20 @@
 #include <string.h>
 #include <windows.h>
 #include <bitset>
+#include <cmath>
 #include "gameplay.h"
 
 
 #pragma warning(disable : 26812)
 
 
-// @remember: should decrease MAX_COLLISIONS_PER_TILE when game is finished or when related design decisions are final
+// @remember: should decrease MAX_ENTITIES_PER_TILE when game is finished or when related design decisions are final
 #define TILE_MAP_WIDTH              17
 #define TILE_MAP_HEIGHT             11
 #define TILE_MAP_COUNT              (TILE_MAP_WIDTH * TILE_MAP_HEIGHT)
 #define MAX_GAMEPLAY_ENTITIES       TILE_MAP_COUNT
 #define TILE_MAP_TEXTURE_SIDE_SIZE  64                                  // in pixels
-#define MAX_COLLISIONS_PER_TILE     10                                  // potential game objects (collisions) in an single tile
+#define MAX_ENTITIES_PER_TILE       10                                  // potential game objects (collisions) in an single tile
 #define MAX_CHAIN_COLLISIONS        (2 * TILE_MAP_WIDTH)
 
 
@@ -37,7 +38,7 @@ int main()
   
   tile_map<TILE_MAP_WIDTH,TILE_MAP_HEIGHT>* test_tile_map = new tile_map<TILE_MAP_WIDTH,TILE_MAP_HEIGHT>("Assets/Images/test_tile_map.png", (float) window_size.x, (float) window_size.y, TILE_MAP_TEXTURE_SIDE_SIZE);
   gameplay_entities<MAX_GAMEPLAY_ENTITIES>* all_gameplay_entities = new gameplay_entities<MAX_GAMEPLAY_ENTITIES>("Assets/Images/gameplay_entities.png", TILE_MAP_TEXTURE_SIDE_SIZE * 3); // need to be able to handle a single gameplay entity per tile
-  gameplay_entity_ids_per_tile<TILE_MAP_WIDTH,TILE_MAP_HEIGHT,MAX_GAMEPLAY_ENTITIES,MAX_COLLISIONS_PER_TILE>* tile_to_gameplay_entities = new gameplay_entity_ids_per_tile<TILE_MAP_WIDTH,TILE_MAP_HEIGHT,MAX_GAMEPLAY_ENTITIES,MAX_COLLISIONS_PER_TILE>();
+  gameplay_entity_ids_per_tile<TILE_MAP_WIDTH,TILE_MAP_HEIGHT,MAX_GAMEPLAY_ENTITIES,MAX_ENTITIES_PER_TILE>* tile_to_gameplay_entities = new gameplay_entity_ids_per_tile<TILE_MAP_WIDTH,TILE_MAP_HEIGHT,MAX_GAMEPLAY_ENTITIES,MAX_ENTITIES_PER_TILE>();
 
   #ifdef _DEBUG
     bool show_debug_data = true;
@@ -50,20 +51,20 @@ int main()
   #endif
   
   all_gameplay_entities->is_garbage_flags[0] = false;
-  all_gameplay_entities->is_garbage_flags[1] = false;
-  all_gameplay_entities->is_garbage_flags[2] = false;
+  all_gameplay_entities->is_garbage_flags[1] = true;
+  all_gameplay_entities->is_garbage_flags[2] = true;
   all_gameplay_entities->is_garbage_flags[3] = false;
-  all_gameplay_entities->is_garbage_flags[4] = false;
-  all_gameplay_entities->is_garbage_flags[5] = false;
-  all_gameplay_entities->is_garbage_flags[6] = false;
-  all_gameplay_entities->is_garbage_flags[7] = false;
-  all_gameplay_entities->is_garbage_flags[8] = false;
-  all_gameplay_entities->is_garbage_flags[9] = false;
-  all_gameplay_entities->is_garbage_flags[10] = false;
-  all_gameplay_entities->is_garbage_flags[11] = false;
-  all_gameplay_entities->is_garbage_flags[12] = false;
-  all_gameplay_entities->is_garbage_flags[13] = false;
-  all_gameplay_entities->is_garbage_flags[14] = false;
+  all_gameplay_entities->is_garbage_flags[4] = true;
+  all_gameplay_entities->is_garbage_flags[5] = true;
+  all_gameplay_entities->is_garbage_flags[6] = true;
+  all_gameplay_entities->is_garbage_flags[7] = true;
+  all_gameplay_entities->is_garbage_flags[8] = true;
+  all_gameplay_entities->is_garbage_flags[9] = true;
+  all_gameplay_entities->is_garbage_flags[10] = true;
+  all_gameplay_entities->is_garbage_flags[11] = true;
+  all_gameplay_entities->is_garbage_flags[12] = true;
+  all_gameplay_entities->is_garbage_flags[13] = true;
+  all_gameplay_entities->is_garbage_flags[14] = true;
 
 
 
@@ -117,10 +118,10 @@ int main()
   for(int i=0; i < all_gameplay_entities->vertex_count; i+=4)
   {
     // the tile_size - 0.01f is to currently handle overlapping tile vertices
-    all_gameplay_entities->collision_vertices[i]   = sf::Vector2f(10.0f, 0.0f);
-    all_gameplay_entities->collision_vertices[i+1] = sf::Vector2f(test_tile_map->tile_size_x - 10.0f, 0.0f);
-    all_gameplay_entities->collision_vertices[i+2] = sf::Vector2f(test_tile_map->tile_size_x - 10.0f, test_tile_map->tile_size_y - 10.0f);
-    all_gameplay_entities->collision_vertices[i+3] = sf::Vector2f(10.0f, test_tile_map->tile_size_y - 10.0f);
+    all_gameplay_entities->collision_vertices[i]   = sf::Vector2f(25.0f, 0.0f);
+    all_gameplay_entities->collision_vertices[i+1] = sf::Vector2f(test_tile_map->tile_size_x - 25.0f, 0.0f);
+    all_gameplay_entities->collision_vertices[i+2] = sf::Vector2f(test_tile_map->tile_size_x - 25.0f, test_tile_map->tile_size_y - 25.0f);
+    all_gameplay_entities->collision_vertices[i+3] = sf::Vector2f(25.0f, test_tile_map->tile_size_y - 25.0f);
   }
 
   all_gameplay_entities->update_position_by_offset( 0, sf::Vector2f(test_tile_map->tile_size_x * 2, 3 * test_tile_map->tile_size_y) );
@@ -143,7 +144,7 @@ int main()
   float timestep;
   float intersection_time;
   entity_collision_input* const all_entity_collision_data = new entity_collision_input[MAX_GAMEPLAY_ENTITIES];
-  entity_collision* const all_entity_collisions = new entity_collision[TILE_MAP_COUNT * MAX_COLLISIONS_PER_TILE];
+  entity_collision* const all_entity_collisions = new entity_collision[TILE_MAP_COUNT * MAX_ENTITIES_PER_TILE];
 
 
 
@@ -275,20 +276,14 @@ int main()
         all_entity_collision_data[i].collision_vertices[3] = all_gameplay_entities->collision_vertices[(i*4) + 3];
       }
 
-      collision_count = calculate_collisions<MAX_GAMEPLAY_ENTITIES,MAX_COLLISIONS_PER_TILE,TILE_MAP_WIDTH,TILE_MAP_HEIGHT>(all_entity_collision_data,all_entity_collisions,timestep,*test_tile_map,tile_to_gameplay_entities,all_gameplay_entities->is_garbage_flags);
-      if (collision_count == 0)
-      {
-        intersection_time = timestep;
-      }
-      else
-      {
-        intersection_time = all_entity_collisions[0].intersection_time;
-      }
+      collision_count = calculate_collisions<MAX_GAMEPLAY_ENTITIES,MAX_ENTITIES_PER_TILE,TILE_MAP_WIDTH,TILE_MAP_HEIGHT>(all_entity_collision_data,all_entity_collisions,timestep,*test_tile_map,tile_to_gameplay_entities,all_gameplay_entities->is_garbage_flags);
+
+      intersection_time = timestep;
 
       // find smallest collision time
       for(int i=0; i < collision_count; ++i)
       {
-        if (all_entity_collisions[i].intersection_time < intersection_time) intersection_time = all_entity_collisions[i].intersection_time;
+        if ( std::abs(all_entity_collisions[i].intersection_time) < intersection_time) intersection_time = all_entity_collisions[i].intersection_time;
       }
 
       all_gameplay_entities->update_positions_by_velocity(intersection_time);
@@ -296,6 +291,7 @@ int main()
       // resolve collisions
       for(int i=0; i < collision_count; ++i)
       {
+
         if (all_entity_collisions[i].intersection_time == intersection_time)
         {
           // set new velocites
@@ -317,7 +313,7 @@ int main()
             int second_id = all_entity_collisions[i].entity_ids[1];
 
             if (collision_matrix[first_id][second_id]) continue;
-            
+
             sf::Vector2f collision_velocity( (all_entity_collision_data[first_id].velocity.x + all_entity_collision_data[second_id].velocity.x) / 2.0f,
                                              (all_entity_collision_data[first_id].velocity.y + all_entity_collision_data[second_id].velocity.y) / 2.0f);
 
