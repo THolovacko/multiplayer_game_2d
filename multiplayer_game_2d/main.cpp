@@ -51,7 +51,7 @@ int main()
   #endif
   
   all_gameplay_entities->is_garbage_flags[0]  = false;
-  all_gameplay_entities->is_garbage_flags[1]  = true;
+  all_gameplay_entities->is_garbage_flags[1]  = false;
   all_gameplay_entities->is_garbage_flags[2]  = true;
   all_gameplay_entities->is_garbage_flags[3]  = false;
   all_gameplay_entities->is_garbage_flags[4]  = true;
@@ -87,6 +87,7 @@ int main()
   all_gameplay_entities->animation_indexes[0] = 0;
   all_gameplay_entities->animation_indexes[1] = 0;
   all_gameplay_entities->animation_indexes[2] = 0;
+  /*
   all_gameplay_entities->velocities[0] = sf::Vector2f(0.0f ,0.0f );
   all_gameplay_entities->velocities[1] = sf::Vector2f(50.0f, 0.0f);
   all_gameplay_entities->velocities[2] = sf::Vector2f(0.0f, 0.0f);
@@ -102,7 +103,7 @@ int main()
   all_gameplay_entities->velocities[12] = sf::Vector2f(0.0f, 100.0f);
   all_gameplay_entities->velocities[13] = sf::Vector2f(-50.0f, 0.0f);
   all_gameplay_entities->velocities[14] = sf::Vector2f(25.0f ,0.0f);
-
+  */
 
 
   // initialize entity positions to (0,0) origin

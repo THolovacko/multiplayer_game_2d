@@ -17,8 +17,6 @@ template<int p_max_size>
 struct gameplay_entities
 {
   /* @remember: all hitboxes at max are tile-width */
-  /* @remember: velocities should never move an entity more than half a tile per frame */
-  /* @remember: can only have x or y velocity at a time */
 
   sf::Vertex vertex_buffer[p_max_size * 4];           // 4 vertices per entity
   sf::Texture sprite_sheet_texture;                   // a sprite sheet where each row is a separate entity and each column is a different frame for an animation (the first row is transparent)
@@ -29,7 +27,6 @@ struct gameplay_entities
 
   gameplay_entity_type types[p_max_size] = {gameplay_entity_type::NONE}; // type of gameplay entity that's also used to specify row in sprite_sheet
   int animation_indexes[p_max_size] = {0};                                                                                         // current frame for animation
-  sf::Vector2f velocities[p_max_size];                                                                                             // how many pixels per second to move in x and y directions
   std::bitset<p_max_size> is_garbage_flags;
 
 
@@ -49,32 +46,27 @@ struct gameplay_entities
       vertex.texCoords = sf::Vector2f(0.0f, 0.0f);
     }
 
-    for(auto& default_velocity: velocities)
-    {
-      default_velocity = sf::Vector2f(0.0f, 0.0f);
-    }
-
     for(auto& collision_vertice : collision_vertices)
     {
       collision_vertice = sf::Vector2f(0.0f, 0.0f);
     }
   }
 
-  void update_positions_by_velocity(const float elapsed_frame_time_seconds)
+  void update_positions(const sf::Vector2f* const target_origin_position)
   {
     for(int entity_index=0,vertex=0; entity_index < max_size; ++entity_index,vertex += 4)
     {
-      current_velocity_position_offset = velocities[entity_index] * (elapsed_frame_time_seconds * !is_garbage_flags[entity_index]);
+      current_position_offset = (vertex_buffer[vertex].position - target_origin_position[entity_index]) * !is_garbage_flags[entity_index];
 
-      vertex_buffer[vertex].position   += current_velocity_position_offset;
-      vertex_buffer[vertex+1].position += current_velocity_position_offset;
-      vertex_buffer[vertex+2].position += current_velocity_position_offset;
-      vertex_buffer[vertex+3].position += current_velocity_position_offset;
+      vertex_buffer[vertex].position   += current_position_offset;
+      vertex_buffer[vertex+1].position += current_position_offset;
+      vertex_buffer[vertex+2].position += current_position_offset;
+      vertex_buffer[vertex+3].position += current_position_offset;
 
-      collision_vertices[vertex]   += current_velocity_position_offset;
-      collision_vertices[vertex+1] += current_velocity_position_offset;
-      collision_vertices[vertex+2] += current_velocity_position_offset;
-      collision_vertices[vertex+3] += current_velocity_position_offset;
+      collision_vertices[vertex]   += current_position_offset;
+      collision_vertices[vertex+1] += current_position_offset;
+      collision_vertices[vertex+2] += current_position_offset;
+      collision_vertices[vertex+3] += current_position_offset;
     }
   }
 
@@ -223,6 +215,12 @@ enum class tile_map_bitmap_type : int // these are also the sprite sheet indexes
   WALL = 4
 };
 
+struct tile_map_indexes
+{
+  int x;
+  int y;
+};
+
 template<int p_width, int p_height>
 struct tile_map
 {
@@ -275,6 +273,13 @@ struct tile_map
       this->vertex_buffer[vertex+2].texCoords = sf::Vector2f((float) texture_offset + tile_sheet_side_length, (float) tile_sheet_side_length);
       this->vertex_buffer[vertex+3].texCoords = sf::Vector2f((float) texture_offset                         , (float) tile_sheet_side_length);
     }
+  }
+
+  int calculate_tile_map_index(const sf::Vector2f collision_vertex) const
+  {
+    int y_index = static_cast<int>(collision_vertex.y / p_tile_map.tile_size_y);
+    int x_index = static_cast<int>(collision_vertex.x / p_tile_map.tile_size_x);
+    return (y_index * p_tile_map.width) + x_index;
   }
 
   #ifdef _DEBUG
@@ -696,6 +701,108 @@ int calculate_collisions(const entity_collision_input* const collision_inputs, e
 
   return collision_index;
 }
+
+
+/* movement stuff */
+
+struct entity_move_request
+{
+  int id;
+  sf::Vector2f current_origin_position;
+  sf::Vector2f destination_origin_position;
+  sf::Vector2f velocity;
+
+  sf::Vector2f velocity_normalized() const
+  {
+    return sf::Vector2f(velocity.x / (velocity.x + velocity.y), velocity.y / (velocity.x + velocity.y));
+  }
+};
+
+template<int max_entity_count>
+struct entity_moves
+{
+  sf::Vector2f current_origin_positions[max_entity_count];
+  sf::Vector2f destination_origin_positions[max_entity_count];
+  sf::Vector2f velocities[max_entity_count];
+
+  entity_moves()
+  {
+    for(auto& position : current_origin_positions) position     = sf::Vector2f(0.0f, 0.0f);
+    for(auto& position : destination_origin_positions) position = sf::Vector2f(0.0f, 0.0f);
+    for(auto& velocity : velocities) position                   = sf::Vector2f(0.0f, 0.0f);
+  }
+
+  template<int count, int tile_map_width, int tile_map_height, int max_gameplay_entities, int max_entities_per_tile>
+  void submit_move(const entity_move_request* const move_requests, const tile_map<tile_map_width,tile_map_height>& p_tile_map, const gameplay_entity_ids_per_tile<tile_map_width,tile_map_height,max_gameplay_entities,max_entities_per_tile>& tile_map_hash)
+  {
+    for(int i=0; i < count; ++i)
+    {
+      int request_entity_id = move_requests[i].id;
+      sf::Vector2f request_velocity = move_requests[i].velocity;
+      int destination_tile_index = p_tilep_tile_map.calculate_tile_index(destination_origin_position);
+      int chain_entity_ids[tile_map_width];  // @remember: width is assumed always larger than height
+      int chain_index = 0;
+
+      memset(chain_entity_ids, -1, sizeof(chain_entity_ids));
+
+      if ( velocities[request_entity_id].x || velocities[request_entity_id].y ) continue; // entity is already moving
+      if ( p_tile_map.bitmap[destination_tile_index] == static_cast<int>(tile_map_bitmap_type::WALL) ) continue; // entity is trying to move into a wall
+
+      chain_entity_ids[chain_index] = request_entity_id;
+      ++chain_index;
+
+      // if destination tile is empty register move
+      // else validate chain entities are stationary and not walls then register chain moves with calculated velocity
+      int tile_bucket_index_limit = max_collision_per_tile_count * (destination_tile_index + 1);
+      for(int tile_bucket_index = destination_tile_index * max_collision_per_tile_count; tile_bucket_index < tile_bucket_index_limit; ++tile_bucket_index)
+      {
+        int other_entity_id = tile_map_hash.tile_buckets[tile_bucket_index];
+        if (other_entity_id == -1) break;
+
+        if (velocities[other_entity_id].x || (velocities[other_entity_id].y)
+        {
+          memset(chain_entity_ids, -1, sizeof(chain_entity_ids));
+          break;
+        }
+        else
+        {
+          chain_entity_ids[chain_index] = other_entity_id;
+          ++chain_index;
+
+          // calculate next tile using velocity
+          if (request_velocty.x)
+          {
+            tile_bucket_index = ( destination_tile_index + static_cast<int>(move_requests[i].normalized_velocity.x) ) * max_collision_per_tile_count;
+          }
+          else if (request_velocity.y)
+          {
+            tile_bucket_index = ( destination_tile_index + (tile_map_width + static_cast<int>(move_requests[i].normalized_velocity.x)) ) * max_collision_per_tile_count;
+          }
+
+          tile_bucket_index_limit = tile_bucket_index + max_collision_per_tile_count;
+
+          if ( p_tile_map.bitmap[tile_bucket_index / max_collision_per_tile_count] == static_cast<int>(tile_map_bitmap_type::WALL) )
+          {
+            memset(chain_entity_ids, -1, sizeof(chain_entity_ids));
+            break;
+          }
+        }
+      }
+
+      // don't forget to check move table for potential move cancel
+
+      // register moves for all chain entities
+    }
+  }
+
+  void update(const float timestep)
+  {
+    // update current positions
+    // if current position reaches or passes target
+    //    set current_position to target_position
+    //    set velocity to zero
+  }
+};
 
 
 
