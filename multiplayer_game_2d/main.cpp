@@ -17,7 +17,7 @@
 #define TILE_MAP_COUNT              (TILE_MAP_WIDTH * TILE_MAP_HEIGHT)
 #define MAX_GAMEPLAY_ENTITIES       TILE_MAP_COUNT
 #define TILE_MAP_TEXTURE_SIDE_SIZE  64                                  // in pixels
-#define MAX_ENTITIES_PER_TILE       10                                  // potential game objects (collisions) in an single tile
+#define MAX_ENTITIES_PER_TILE       10                                  // potential game objects in an single tile
 #define MAX_CHAIN_COLLISIONS        (2 * TILE_MAP_WIDTH)
 
 
@@ -39,6 +39,8 @@ int main()
   tile_map<TILE_MAP_WIDTH,TILE_MAP_HEIGHT>* test_tile_map = new tile_map<TILE_MAP_WIDTH,TILE_MAP_HEIGHT>("Assets/Images/test_tile_map.png", (float) window_size.x, (float) window_size.y, TILE_MAP_TEXTURE_SIDE_SIZE);
   gameplay_entities<MAX_GAMEPLAY_ENTITIES>* all_gameplay_entities = new gameplay_entities<MAX_GAMEPLAY_ENTITIES>("Assets/Images/gameplay_entities.png", TILE_MAP_TEXTURE_SIDE_SIZE * 3); // need to be able to handle a single gameplay entity per tile
   gameplay_entity_ids_per_tile<TILE_MAP_WIDTH,TILE_MAP_HEIGHT,MAX_GAMEPLAY_ENTITIES,MAX_ENTITIES_PER_TILE>* tile_to_gameplay_entities = new gameplay_entity_ids_per_tile<TILE_MAP_WIDTH,TILE_MAP_HEIGHT,MAX_GAMEPLAY_ENTITIES,MAX_ENTITIES_PER_TILE>();
+  entity_moves<MAX_GAMEPLAY_ENTITIES,TILE_MAP_WIDTH,TILE_MAP_HEIGHT>* all_entity_moves = new entity_moves<MAX_GAMEPLAY_ENTITIES,TILE_MAP_WIDTH,TILE_MAP_HEIGHT>();
+  entity_move_request* all_move_requests = new entity_move_request[MAX_GAMEPLAY_ENTITIES];
 
   #ifdef _DEBUG
     bool show_debug_data = true;
@@ -87,24 +89,6 @@ int main()
   all_gameplay_entities->animation_indexes[0] = 0;
   all_gameplay_entities->animation_indexes[1] = 0;
   all_gameplay_entities->animation_indexes[2] = 0;
-  /*
-  all_gameplay_entities->velocities[0] = sf::Vector2f(0.0f ,0.0f );
-  all_gameplay_entities->velocities[1] = sf::Vector2f(50.0f, 0.0f);
-  all_gameplay_entities->velocities[2] = sf::Vector2f(0.0f, 0.0f);
-  all_gameplay_entities->velocities[3] = sf::Vector2f(0.0f, 0.0f);
-  all_gameplay_entities->velocities[4] = sf::Vector2f(25.0f ,0.0f);
-  all_gameplay_entities->velocities[5] = sf::Vector2f(-100.0f ,0.0f );
-  all_gameplay_entities->velocities[6] = sf::Vector2f(0.0f, -10.0f);
-  all_gameplay_entities->velocities[7] = sf::Vector2f(0.0f, 0.0f);
-  all_gameplay_entities->velocities[8] = sf::Vector2f(-25.0f, 0.0f);
-  all_gameplay_entities->velocities[9] = sf::Vector2f(-25.0f ,0.0f);
-  all_gameplay_entities->velocities[10] = sf::Vector2f(-100.0f ,0.0f );
-  all_gameplay_entities->velocities[11] = sf::Vector2f(0.0f, 100.0f);
-  all_gameplay_entities->velocities[12] = sf::Vector2f(0.0f, 100.0f);
-  all_gameplay_entities->velocities[13] = sf::Vector2f(-50.0f, 0.0f);
-  all_gameplay_entities->velocities[14] = sf::Vector2f(25.0f ,0.0f);
-  */
-
 
   // initialize entity positions to (0,0) origin
   for(int i=0; i < all_gameplay_entities->vertex_count; i+=4)
@@ -142,12 +126,6 @@ int main()
   all_gameplay_entities->update_position_by_offset( 14, sf::Vector2f(test_tile_map->tile_size_x * 4, 9 * test_tile_map->tile_size_y) );
 
 
-  float timestep;
-  float intersection_time;
-  entity_collision_input* const all_entity_collision_data = new entity_collision_input[MAX_GAMEPLAY_ENTITIES];
-  entity_collision* const all_entity_collisions = new entity_collision[TILE_MAP_COUNT * MAX_ENTITIES_PER_TILE];
-
-
 
   /* setup and run game loop */
   sf::Event window_event;
@@ -173,6 +151,11 @@ int main()
 
 
     /* get input and events */
+    entity_move_request player_move_request;
+    player_move_request.id = 0;
+    player_move_request.current_origin_position = all_gameplay_entities->vertex_buffer[0].position;
+    int player_origin_tile_index = test_tile_map->calculate_tile_map_index(all_gameplay_entities->vertex_buffer[0].position);
+
     while (window.pollEvent(window_event))
     {
       switch (window_event.type)
@@ -182,10 +165,10 @@ int main()
               break;
 
         case sf::Event::KeyPressed:
-              if (window_event.key.code == sf::Keyboard::Left)   all_gameplay_entities->velocities[0] = sf::Vector2f( (float) -2 * test_tile_map->tile_size_x, 0.0f );
-              if (window_event.key.code == sf::Keyboard::Right)  all_gameplay_entities->velocities[0] = sf::Vector2f( (float) 2 * test_tile_map->tile_size_x, 0.0f  );
-              if (window_event.key.code == sf::Keyboard::Up)     all_gameplay_entities->velocities[0] = sf::Vector2f( 0.0f, (float) -2 * test_tile_map->tile_size_y );
-              if (window_event.key.code == sf::Keyboard::Down)   all_gameplay_entities->velocities[0] = sf::Vector2f( 0.0f, (float)  2 * test_tile_map->tile_size_y );
+              if (window_event.key.code == sf::Keyboard::Left)   player_move_request.velocity = sf::Vector2f( (float) -2 * test_tile_map->tile_size_x, 0.0f );
+              if (window_event.key.code == sf::Keyboard::Right)  player_move_request.velocity = sf::Vector2f( (float) 2 * test_tile_map->tile_size_x, 0.0f  );
+              if (window_event.key.code == sf::Keyboard::Up)     player_move_request.velocity = sf::Vector2f( 0.0f, (float) -2 * test_tile_map->tile_size_y );
+              if (window_event.key.code == sf::Keyboard::Down)   player_move_request.velocity = sf::Vector2f( 0.0f, (float)  2 * test_tile_map->tile_size_y );
               if (window_event.key.code == sf::Keyboard::T)      tingling.play();
 
               if (window_event.key.code == sf::Keyboard::P)      // use for testing random stuff
@@ -193,10 +176,10 @@ int main()
               break;
 
         case sf::Event::KeyReleased:
-              if (window_event.key.code == sf::Keyboard::Left)   all_gameplay_entities->velocities[0] = sf::Vector2f(0.0f, 0.0f);
-              if (window_event.key.code == sf::Keyboard::Right)  all_gameplay_entities->velocities[0] = sf::Vector2f(0.0f, 0.0f);
-              if (window_event.key.code == sf::Keyboard::Up)     all_gameplay_entities->velocities[0] = sf::Vector2f(0.0f, 0.0f);
-              if (window_event.key.code == sf::Keyboard::Down)   all_gameplay_entities->velocities[0] = sf::Vector2f(0.0f, 0.0f);
+              //if (window_event.key.code == sf::Keyboard::Left)   player_move_request.velocity = sf::Vector2f(0.0f, 0.0f);
+              //if (window_event.key.code == sf::Keyboard::Right)  player_move_request.velocity = sf::Vector2f(0.0f, 0.0f);
+              //if (window_event.key.code == sf::Keyboard::Up)     player_move_request.velocity = sf::Vector2f(0.0f, 0.0f);
+              //if (window_event.key.code == sf::Keyboard::Down)   player_move_request.velocity = sf::Vector2f(0.0f, 0.0f);
 
               #ifdef _DEBUG
                 if ( window_event.key.code == sf::Keyboard::D ) show_debug_data = !show_debug_data;
@@ -210,6 +193,12 @@ int main()
       }
     }
 
+    if (player_move_request.velocity.x > 0) player_move_request.destination_origin_position = test_tile_map->vertex_buffer[ (player_origin_tile_index + 1 + 1) * 4 ].position;
+    if (player_move_request.velocity.x < 0) player_move_request.destination_origin_position = test_tile_map->vertex_buffer[ (player_origin_tile_index - 1 + 1) * 4 ].position;
+    if (player_move_request.velocity.y > 0) player_move_request.destination_origin_position = test_tile_map->vertex_buffer[ ((player_origin_tile_index + test_tile_map->width) + 1) * 4 ].position;
+    if (player_move_request.velocity.y < 0) player_move_request.destination_origin_position = test_tile_map->vertex_buffer[ ((player_origin_tile_index - test_tile_map->width) + 1) * 4 ].position;
+
+    all_move_requests[0] = player_move_request;
 
 
     /* calculate gameplay stuff */
@@ -247,94 +236,18 @@ int main()
 
     test_tile_map->update_tex_coords_from_bitmap();
 
-
-
-    /* collision update loop */
-
     tile_to_gameplay_entities->update(*test_tile_map, *all_gameplay_entities);
-    sf::Vector2f velocity_cache[MAX_GAMEPLAY_ENTITIES];
-    memcpy(&velocity_cache, all_gameplay_entities->velocities, sizeof(all_gameplay_entities->velocities));
-    timestep = elapsed_frame_time_seconds;
-    int chain_collision_count = 0;
-    int collision_count;
-    std::bitset<MAX_GAMEPLAY_ENTITIES> entity_is_wall;
-
-
-    while ( (timestep > 0.0f) && (chain_collision_count < MAX_CHAIN_COLLISIONS) )
-    {
-      entity_is_wall.reset();
-
-      // query for collision data
-      for(int i=0; i < MAX_GAMEPLAY_ENTITIES; ++i)
-      {
-        all_entity_collision_data[i].velocity = all_gameplay_entities->velocities[i];
-
-        all_entity_collision_data[i].collision_vertices[0] = all_gameplay_entities->collision_vertices[(i*4) + 0];
-        all_entity_collision_data[i].collision_vertices[1] = all_gameplay_entities->collision_vertices[(i*4) + 1];
-        all_entity_collision_data[i].collision_vertices[2] = all_gameplay_entities->collision_vertices[(i*4) + 2];
-        all_entity_collision_data[i].collision_vertices[3] = all_gameplay_entities->collision_vertices[(i*4) + 3];
-      }
-
-      collision_count = calculate_collisions<MAX_GAMEPLAY_ENTITIES,MAX_ENTITIES_PER_TILE,TILE_MAP_WIDTH,TILE_MAP_HEIGHT>(all_entity_collision_data,all_entity_collisions,timestep,*test_tile_map,tile_to_gameplay_entities,all_gameplay_entities->is_garbage_flags);
-
-      intersection_time = timestep;
-
-      // find smallest collision time
-      for(int i=0; i < collision_count; ++i)
-      {
-        if ( std::abs(all_entity_collisions[i].intersection_time) < intersection_time) intersection_time = all_entity_collisions[i].intersection_time;
-      }
-
-      all_gameplay_entities->update_positions_by_velocity(intersection_time);
-
-      // resolve collisions
-      for(int i=0; i < collision_count; ++i)
-      {
-
-        if (all_entity_collisions[i].intersection_time == intersection_time)
-        {
-          // set new velocites
-          if( (all_entity_collisions[i].entity_ids[1] == -1) || (entity_is_wall[ all_entity_collisions[i].entity_ids[1] ]) ) // wall collision check
-          {
-            all_gameplay_entities->velocities[all_entity_collisions[i].entity_ids[0]] = sf::Vector2f(0.0f,0.0f);
-            entity_is_wall[all_entity_collisions[i].entity_ids[0]] = true;
-          }
-          else if(all_entity_collisions[i].right_of_way_id >= 0)
-          {
-            int non_right_of_way_id = (all_entity_collisions[i].entity_ids[0] != all_entity_collisions[i].right_of_way_id) ? all_entity_collisions[i].entity_ids[0] : all_entity_collisions[i].entity_ids[1];
-
-            all_gameplay_entities->velocities[non_right_of_way_id] = sf::Vector2f(0.0f,0.0f);
-            entity_is_wall[non_right_of_way_id] = true;
-          }
-          else
-          {
-            int first_id  = all_entity_collisions[i].entity_ids[0];
-            int second_id = all_entity_collisions[i].entity_ids[1];
-
-            sf::Vector2f collision_velocity( (all_entity_collision_data[first_id].velocity.x + all_entity_collision_data[second_id].velocity.x) / 2.0f,
-                                             (all_entity_collision_data[first_id].velocity.y + all_entity_collision_data[second_id].velocity.y) / 2.0f);
-
-            all_gameplay_entities->velocities[first_id]  = collision_velocity;
-            all_gameplay_entities->velocities[second_id] = collision_velocity;
-          }
-
-          // commit gameplay event?
-        }
-      }
-
-      chain_collision_count += (collision_count + static_cast<int>(collision_count == 0)); // make sure at least increment by 1 !!! should probably change this later
-      timestep -= intersection_time;
-      tile_to_gameplay_entities->update(*test_tile_map, *all_gameplay_entities);
-    }
-
-    memcpy(all_gameplay_entities->velocities, &velocity_cache, sizeof(all_gameplay_entities->velocities));
 
 
 
-    // commit other gameplay events? (examples: timed bomb detonating, Q-ability activated)
+    all_entity_moves->submit_move(all_move_requests, *test_tile_map, 1);
+    all_entity_moves->update_by_velocities(elapsed_frame_time_seconds);
+
+
     // process gameplay events?
     // update bitmap?
-    // update textCoords?
+
+    // !!! all_gameplay_entities->update_positions(all_entity_moves->current_origin_positions);
     all_gameplay_entities->update_tex_coords(elapsed_frame_time_seconds);
 
     /* draw */
