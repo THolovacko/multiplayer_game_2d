@@ -58,7 +58,7 @@ struct gameplay_entities
     {
       if (is_garbage_flags[entity_index]) continue;
 
-      sf::Vector2f current_position_offset = vertex_buffer[vertex].position - target_origin_positions[entity_index];
+      sf::Vector2f current_position_offset = target_origin_positions[entity_index] - collision_vertices[vertex];
 
       vertex_buffer[vertex].position   += current_position_offset;
       vertex_buffer[vertex+1].position += current_position_offset;
@@ -281,7 +281,7 @@ struct tile_map
   {
     int y_index = static_cast<int>(collision_vertex.y / tile_size_y);
     int x_index = static_cast<int>(collision_vertex.x / tile_size_x);
-    return (y_index * width) + x_index;
+    return (y_index * p_width) + x_index;
   }
 
   #ifdef _DEBUG
@@ -427,7 +427,7 @@ struct gameplay_entity_ids_per_tile
 /* movement stuff */
 struct entity_move_request
 {
-  int id;
+  int id = -1;
   sf::Vector2f current_origin_position;
   sf::Vector2f destination_origin_position;
   sf::Vector2f velocity;
@@ -470,13 +470,15 @@ struct entity_moves
     memset(chain_entity_ids, -1, sizeof(chain_entity_ids));
   }
 
-  void submit_move(const entity_move_request* const move_requests, const tile_map<tile_map_width,tile_map_height>& p_tile_map, const int count)
+  void submit_move(entity_move_request* const move_requests, const tile_map<tile_map_width,tile_map_height>& p_tile_map, const int count)
   {
     for(int i=0; i < count; ++i)
     {
       request_entity_id = move_requests[i].id;
+      if (request_entity_id == -1) continue;
+
       request_velocity = move_requests[i].velocity;
-      chain_destination_tile_index = p_tile_map.calculate_tile_map_index(destination_origin_positions[i]);
+      chain_destination_tile_index = p_tile_map.calculate_tile_map_index(move_requests[i].destination_origin_position);
       chain_index = 0;
       memset(chain_entity_ids, -1, sizeof(chain_entity_ids));
 
@@ -485,6 +487,7 @@ struct entity_moves
       chain_entity_ids[chain_index] = request_entity_id;
       ++chain_index;
 
+      std::cout << "chain_destination_tile_index: " << chain_destination_tile_index << std::endl;
 
       for(int chain_loop_index=0; chain_loop_index < tile_map_width; ++chain_loop_index)  // @remember: tile_map_width is current chain move limit because assumed larger than tile map height
       {
@@ -511,20 +514,21 @@ struct entity_moves
             chain_index = 0;
             break;
           }
+          else // tile has statoinary entity
+          {
+            chain_entity_ids[chain_index] = current_other_entity_id;
+            ++chain_index;
+          }
         }
 
         if (destination_other_entity_id != -1)
         {
-          // if tile is empty but has destination entity the destination entity must be moving
+          // if tile is has destination entity the destination entity must be moving
           memset(chain_entity_ids, -1, sizeof(chain_entity_ids));
           chain_index = 0;
           break;
         }
 
-        // tile leads to stationary current_other_entity
-
-        chain_entity_ids[chain_index] = current_other_entity_id;
-        ++chain_index;
 
         // calculate next tile using velocity
         if (request_velocity.x)
@@ -537,7 +541,12 @@ struct entity_moves
         }
       }
 
-      if (chain_index == 0) continue; // move was canceled
+      // check if move was canceled
+      if (chain_index == 0)
+      {
+        move_requests[i].id = -1;
+        continue;
+      }
 
       // update request velocity to take collision resistance into account
       if (request_velocity.x)
@@ -563,6 +572,8 @@ struct entity_moves
         tile_index_to_destination_entity_id[ p_tile_map.calculate_tile_map_index(current_origin_positions[id]) ]     = id;
         tile_index_to_destination_entity_id[ p_tile_map.calculate_tile_map_index(destination_origin_positions[id]) ] = id;
       }
+
+      move_requests[i].id = -1;
     }
   }
 
