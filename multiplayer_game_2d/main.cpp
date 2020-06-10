@@ -52,19 +52,19 @@ int main()
   
   all_gameplay_entities->is_garbage_flags[0]  = false;
   all_gameplay_entities->is_garbage_flags[1]  = false;
-  all_gameplay_entities->is_garbage_flags[2]  = true;
+  all_gameplay_entities->is_garbage_flags[2]  = false;
   all_gameplay_entities->is_garbage_flags[3]  = false;
-  all_gameplay_entities->is_garbage_flags[4]  = true;
-  all_gameplay_entities->is_garbage_flags[5]  = true;
-  all_gameplay_entities->is_garbage_flags[6]  = true;
-  all_gameplay_entities->is_garbage_flags[7]  = true;
-  all_gameplay_entities->is_garbage_flags[8]  = true;
-  all_gameplay_entities->is_garbage_flags[9]  = true;
-  all_gameplay_entities->is_garbage_flags[10] = true;
-  all_gameplay_entities->is_garbage_flags[11] = true;
-  all_gameplay_entities->is_garbage_flags[12] = true;
-  all_gameplay_entities->is_garbage_flags[13] = true;
-  all_gameplay_entities->is_garbage_flags[14] = true;
+  all_gameplay_entities->is_garbage_flags[4]  = false;
+  all_gameplay_entities->is_garbage_flags[5]  = false;
+  all_gameplay_entities->is_garbage_flags[6]  = false;
+  all_gameplay_entities->is_garbage_flags[7]  = false;
+  all_gameplay_entities->is_garbage_flags[8]  = false;
+  all_gameplay_entities->is_garbage_flags[9]  = false;
+  all_gameplay_entities->is_garbage_flags[10] = false;
+  all_gameplay_entities->is_garbage_flags[11] = false;
+  all_gameplay_entities->is_garbage_flags[12] = false;
+  all_gameplay_entities->is_garbage_flags[13] = false;
+  all_gameplay_entities->is_garbage_flags[14] = false;
 
 
 
@@ -229,9 +229,9 @@ int main()
       test_tile_map->bitmap[i] = static_cast<int>(tile_map_bitmap_type::WALL);
     }
 
-    for(int i=0; i < test_tile_map->height; ++i)
+    for(int i=1; i < test_tile_map->height; ++i)
     {
-      //test_tile_map->bitmap[(i * test_tile_map->width) + (test_tile_map->width - 1)] = static_cast<int>(tile_map_bitmap_type::WALL);
+      test_tile_map->bitmap[(i * test_tile_map->width) + (test_tile_map->width - 1)] = static_cast<int>(tile_map_bitmap_type::WALL);
     }
 
     for(int tile_index = (test_tile_map->width * 2); tile_index < test_tile_map->tile_count; tile_index += (test_tile_map->width * 2))
