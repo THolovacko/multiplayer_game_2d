@@ -145,6 +145,10 @@ int main()
   entity_move_request* all_move_requests = new entity_move_request[MAX_GAMEPLAY_ENTITIES];
 
 
+  entity_move_request player_move_request;
+  player_move_request.id = 0;
+
+
 
   /* setup and run game loop */
   sf::Event window_event;
@@ -154,7 +158,7 @@ int main()
   sf::Int64 elapsed_frame_time_microseconds;
   float     elapsed_frame_time_seconds;
 
-  srand(static_cast<unsigned int>(time(NULL))); // @optimze: randomn values should probably be pre-generated or at least only generated once
+  srand(static_cast<unsigned int>(time(NULL))); // @optimize: randomn values should probably be pre-generated or at least only generated once
 
   while (window.isOpen())
   {
@@ -171,11 +175,9 @@ int main()
 
     for (int i = 0; i < MAX_GAMEPLAY_ENTITIES; ++i) all_move_requests[i].id = -1; // reset all move requests
 
-    /* get input and events */
-    entity_move_request player_move_request;
-    player_move_request.id = 0;
-    player_move_request.current_origin_position = all_gameplay_entities->collision_vertices[0];
 
+
+    /* get input and events */
     while (window.pollEvent(window_event))
     {
       switch (window_event.type)
@@ -185,21 +187,11 @@ int main()
               break;
 
         case sf::Event::KeyPressed:
-              if (window_event.key.code == sf::Keyboard::Left)   player_move_request.velocity = sf::Vector2f( (float) -4 * test_tile_map->tile_size_x, 0.0f );
-              if (window_event.key.code == sf::Keyboard::Right)  player_move_request.velocity = sf::Vector2f( (float) 4 * test_tile_map->tile_size_x, 0.0f  );
-              if (window_event.key.code == sf::Keyboard::Up)     player_move_request.velocity = sf::Vector2f( 0.0f, (float) -4 * test_tile_map->tile_size_y );
-              if (window_event.key.code == sf::Keyboard::Down)   player_move_request.velocity = sf::Vector2f( 0.0f, (float)  4 * test_tile_map->tile_size_y );
-              if (window_event.key.code == sf::Keyboard::T)      tingling.play();
-
               if (window_event.key.code == sf::Keyboard::P)      // use for testing random stuff
                                                                  all_gameplay_entities->animation_indexes[1] = (all_gameplay_entities->animation_indexes[1] + 1) % 3;
               break;
 
         case sf::Event::KeyReleased:
-              //if (window_event.key.code == sf::Keyboard::Left)   player_move_request.velocity = sf::Vector2f(0.0f, 0.0f);
-              //if (window_event.key.code == sf::Keyboard::Right)  player_move_request.velocity = sf::Vector2f(0.0f, 0.0f);
-              //if (window_event.key.code == sf::Keyboard::Up)     player_move_request.velocity = sf::Vector2f(0.0f, 0.0f);
-              //if (window_event.key.code == sf::Keyboard::Down)   player_move_request.velocity = sf::Vector2f(0.0f, 0.0f);
 
               #ifdef _DEBUG
                 if ( window_event.key.code == sf::Keyboard::D ) show_debug_data = !show_debug_data;
@@ -213,21 +205,43 @@ int main()
       }
     }
 
-
-    if (player_move_request.velocity.x > 0) player_move_request.destination_origin_position = player_move_request.current_origin_position + sf::Vector2f(test_tile_map->tile_size_x,0.0f);
-    if (player_move_request.velocity.x < 0) player_move_request.destination_origin_position = player_move_request.current_origin_position + sf::Vector2f(-1.0f * test_tile_map->tile_size_x, 0.0f);
-    if (player_move_request.velocity.y > 0) player_move_request.destination_origin_position = player_move_request.current_origin_position + sf::Vector2f(0.0f,test_tile_map->tile_size_y);
-    if (player_move_request.velocity.y < 0) player_move_request.destination_origin_position = player_move_request.current_origin_position + sf::Vector2f(0.0f,-1.0f * test_tile_map->tile_size_y);
-
-    if (player_move_request.velocity.x || player_move_request.velocity.y)
-    {
-      all_move_requests[0] = player_move_request;
-    }
+    if      (sf::Keyboard::isKeyPressed(sf::Keyboard::Left))   player_move_request.velocity = sf::Vector2f( (float) -2 * test_tile_map->tile_size_x, 0.0f );
+    else if (sf::Keyboard::isKeyPressed(sf::Keyboard::Right))  player_move_request.velocity = sf::Vector2f( (float) 2 * test_tile_map->tile_size_x, 0.0f  );
+    else if (sf::Keyboard::isKeyPressed(sf::Keyboard::Up))     player_move_request.velocity = sf::Vector2f( 0.0f, (float) -2 * test_tile_map->tile_size_y );
+    else if (sf::Keyboard::isKeyPressed(sf::Keyboard::Down))   player_move_request.velocity = sf::Vector2f( 0.0f, (float)  2 * test_tile_map->tile_size_y );
 
 
 
     /* calculate gameplay stuff */
+    player_move_request.current_origin_position = all_gameplay_entities->collision_vertices[0];
 
+    if ( (all_entity_moves->velocities[0].x && (std::abs(all_entity_moves->destination_origin_positions[0].x - all_entity_moves->current_origin_positions[0].x) >= (test_tile_map->tile_size_x / 2.0f)) ) ||
+         (all_entity_moves->velocities[0].y && (std::abs(all_entity_moves->destination_origin_positions[0].y - all_entity_moves->current_origin_positions[0].y) >= (test_tile_map->tile_size_y / 2.0f)) ) )
+    {
+      if (player_move_request.velocity.x > 0) player_move_request.destination_origin_position = player_move_request.current_origin_position + sf::Vector2f(test_tile_map->tile_size_x,0.0f);
+      if (player_move_request.velocity.x < 0) player_move_request.destination_origin_position = player_move_request.current_origin_position + sf::Vector2f(-1.0f * test_tile_map->tile_size_x, 0.0f);
+      if (player_move_request.velocity.y > 0) player_move_request.destination_origin_position = player_move_request.current_origin_position + sf::Vector2f(0.0f,test_tile_map->tile_size_y);
+      if (player_move_request.velocity.y < 0) player_move_request.destination_origin_position = player_move_request.current_origin_position + sf::Vector2f(0.0f,-1.0f * test_tile_map->tile_size_y);
+
+      if (player_move_request.velocity.x || player_move_request.velocity.y)
+      {
+        all_move_requests[0] = player_move_request;
+      }
+    }
+    else if ( !(all_entity_moves->velocities[0].x) && !(all_entity_moves->velocities[0].y))
+    {
+      if (player_move_request.velocity.x > 0) player_move_request.destination_origin_position = player_move_request.current_origin_position + sf::Vector2f(test_tile_map->tile_size_x,0.0f);
+      if (player_move_request.velocity.x < 0) player_move_request.destination_origin_position = player_move_request.current_origin_position + sf::Vector2f(-1.0f * test_tile_map->tile_size_x, 0.0f);
+      if (player_move_request.velocity.y > 0) player_move_request.destination_origin_position = player_move_request.current_origin_position + sf::Vector2f(0.0f,test_tile_map->tile_size_y);
+      if (player_move_request.velocity.y < 0) player_move_request.destination_origin_position = player_move_request.current_origin_position + sf::Vector2f(0.0f,-1.0f * test_tile_map->tile_size_y);
+
+      if (player_move_request.velocity.x || player_move_request.velocity.y)
+      {
+        all_move_requests[0] = player_move_request;
+      }
+    }
+    else player_move_request.velocity = sf::Vector2f(0.0f, 0.0f); // reset chamber
+ 
 
     // generate walls
     for(int i=0; i < test_tile_map->width; ++i)
@@ -279,7 +293,7 @@ int main()
       if(random_number > 5) { x *= -1.0f; y *= -1.0f; }
 
       // decide magnitude
-      random_number = (rand() % 10 + 1);
+      random_number = 10;//(rand() % 10 + 1);
       x *= ( static_cast<float>(random_number) * 25.0f);
       y *= ( static_cast<float>(random_number) * 25.0f);
 
