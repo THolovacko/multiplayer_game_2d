@@ -5,6 +5,8 @@
 #include <windows.h>
 #include <bitset>
 #include <cmath>
+#include <cstdlib>
+#include <time.h>
 #include "gameplay.h"
 
 
@@ -65,7 +67,11 @@ int main()
   all_gameplay_entities->is_garbage_flags[12] = false;
   all_gameplay_entities->is_garbage_flags[13] = false;
   all_gameplay_entities->is_garbage_flags[14] = false;
-
+  all_gameplay_entities->is_garbage_flags[15] = false;
+  all_gameplay_entities->is_garbage_flags[16] = false;
+  all_gameplay_entities->is_garbage_flags[17] = false;
+  all_gameplay_entities->is_garbage_flags[18] = false;
+  all_gameplay_entities->is_garbage_flags[19] = false;
 
 
   all_gameplay_entities->types[0] = gameplay_entity_type::MARIO;
@@ -83,6 +89,12 @@ int main()
   all_gameplay_entities->types[12] = gameplay_entity_type::BOMB;
   all_gameplay_entities->types[13] = gameplay_entity_type::BOMB;
   all_gameplay_entities->types[14] = gameplay_entity_type::BOMB;
+  all_gameplay_entities->types[14] = gameplay_entity_type::BOMB;
+  all_gameplay_entities->types[15] = gameplay_entity_type::BOMB;
+  all_gameplay_entities->types[16] = gameplay_entity_type::BOMB;
+  all_gameplay_entities->types[17] = gameplay_entity_type::BOMB;
+  all_gameplay_entities->types[18] = gameplay_entity_type::BOMB;
+  all_gameplay_entities->types[19] = gameplay_entity_type::BOMB;
  
   all_gameplay_entities->animation_indexes[0] = 0;
   all_gameplay_entities->animation_indexes[1] = 0;
@@ -101,10 +113,10 @@ int main()
   for(int i=0; i < all_gameplay_entities->vertex_count; i+=4)
   {
     // the tile_size - 0.01f is to currently handle overlapping tile vertices
-    all_gameplay_entities->collision_vertices[i]   = sf::Vector2f(10.0f, 10.0f);
-    all_gameplay_entities->collision_vertices[i+1] = sf::Vector2f(test_tile_map->tile_size_x - 10.0f, 10.0f);
-    all_gameplay_entities->collision_vertices[i+2] = sf::Vector2f(test_tile_map->tile_size_x - 10.0f, test_tile_map->tile_size_y - 10.0f);
-    all_gameplay_entities->collision_vertices[i+3] = sf::Vector2f(10.0f, test_tile_map->tile_size_y - 10.0f);
+    all_gameplay_entities->collision_vertices[i]   = sf::Vector2f(1.0f, 1.0f);
+    all_gameplay_entities->collision_vertices[i+1] = sf::Vector2f(test_tile_map->tile_size_x - 1.0f, 1.0f);
+    all_gameplay_entities->collision_vertices[i+2] = sf::Vector2f(test_tile_map->tile_size_x - 1.0f, test_tile_map->tile_size_y - 1.0f);
+    all_gameplay_entities->collision_vertices[i+3] = sf::Vector2f(1.0f, test_tile_map->tile_size_y - 1.0f);
   }
 
   all_gameplay_entities->update_position_by_offset( 0, sf::Vector2f(test_tile_map->tile_size_x * 2, 3 * test_tile_map->tile_size_y) );
@@ -122,11 +134,15 @@ int main()
   all_gameplay_entities->update_position_by_offset( 12, sf::Vector2f(test_tile_map->tile_size_x * 13, 8 * test_tile_map->tile_size_y) );
   all_gameplay_entities->update_position_by_offset( 13, sf::Vector2f(test_tile_map->tile_size_x * 8, 5 * test_tile_map->tile_size_y) );
   all_gameplay_entities->update_position_by_offset( 14, sf::Vector2f(test_tile_map->tile_size_x * 4, 9 * test_tile_map->tile_size_y) );
+  all_gameplay_entities->update_position_by_offset( 15, sf::Vector2f(test_tile_map->tile_size_x * 7, 3 * test_tile_map->tile_size_y) );
+  all_gameplay_entities->update_position_by_offset( 16, sf::Vector2f(test_tile_map->tile_size_x * 6, 5 * test_tile_map->tile_size_y) );
+  all_gameplay_entities->update_position_by_offset( 17, sf::Vector2f(test_tile_map->tile_size_x * 5, 9 * test_tile_map->tile_size_y) );
+  all_gameplay_entities->update_position_by_offset( 18, sf::Vector2f(test_tile_map->tile_size_x * 5, 7 * test_tile_map->tile_size_y) );
+  all_gameplay_entities->update_position_by_offset( 19, sf::Vector2f(test_tile_map->tile_size_x * 5, 1 * test_tile_map->tile_size_y) );
 
 
   entity_moves<MAX_GAMEPLAY_ENTITIES,TILE_MAP_WIDTH,TILE_MAP_HEIGHT>* all_entity_moves = new entity_moves<MAX_GAMEPLAY_ENTITIES,TILE_MAP_WIDTH,TILE_MAP_HEIGHT>( all_gameplay_entities->all_collision_vertices_origin_positions(), all_gameplay_entities->is_garbage_flags, *test_tile_map);
   entity_move_request* all_move_requests = new entity_move_request[MAX_GAMEPLAY_ENTITIES];
-  for (int i = 0; i < MAX_GAMEPLAY_ENTITIES; ++i) all_move_requests[i].id = -1;
 
 
 
@@ -137,6 +153,8 @@ int main()
   sf::Int32 elapsed_frame_time_milliseconds;
   sf::Int64 elapsed_frame_time_microseconds;
   float     elapsed_frame_time_seconds;
+
+  srand(static_cast<unsigned int>(time(NULL))); // @optimze: randomn values should probably be pre-generated or at least only generated once
 
   while (window.isOpen())
   {
@@ -157,7 +175,6 @@ int main()
     entity_move_request player_move_request;
     player_move_request.id = 0;
     player_move_request.current_origin_position = all_gameplay_entities->collision_vertices[0];
-    //int player_origin_tile_index = test_tile_map->calculate_tile_map_index(all_gameplay_entities->collision_vertices[0]);
 
     while (window.pollEvent(window_event))
     {
@@ -196,8 +213,6 @@ int main()
       }
     }
 
-    // @testing
-    //player_move_request.velocity = sf::Vector2f( 2.0f * test_tile_map->tile_size_x, 0.0f);
 
     if (player_move_request.velocity.x > 0) player_move_request.destination_origin_position = player_move_request.current_origin_position + sf::Vector2f(test_tile_map->tile_size_x,0.0f);
     if (player_move_request.velocity.x < 0) player_move_request.destination_origin_position = player_move_request.current_origin_position + sf::Vector2f(-1.0f * test_tile_map->tile_size_x, 0.0f);
@@ -208,6 +223,7 @@ int main()
     {
       all_move_requests[0] = player_move_request;
     }
+
 
 
     /* calculate gameplay stuff */
@@ -245,15 +261,38 @@ int main()
 
     test_tile_map->update_tex_coords_from_bitmap();
 
-    tile_to_gameplay_entities->update(*test_tile_map, *all_gameplay_entities);
 
+    // update movement
+    generate_move_request_input stress_test_move_requests[MAX_GAMEPLAY_ENTITIES];
+    for(int i=0; i < 14; ++i)
+    {
+      int random_number = (rand() % 10 + 1);
+      stress_test_move_requests[i].gameplay_entity_id = (i+1);
 
+      float x = 0.0f;
+      float y = 0.0f;
+      // decide axis
+      (random_number > 5) ? x = 1.0f : y = 1.0f;
+
+      // decide sign
+      random_number = (rand() % 10 + 1);
+      if(random_number > 5) { x *= -1.0f; y *= -1.0f; }
+
+      // decide magnitude
+      random_number = (rand() % 10 + 1);
+      x *= ( static_cast<float>(random_number) * 25.0f);
+      y *= ( static_cast<float>(random_number) * 25.0f);
+
+      stress_test_move_requests[i].velocity = sf::Vector2f(x,y);
+    }
+    all_gameplay_entities->generate_move_requests(stress_test_move_requests,all_move_requests, 14,test_tile_map->tile_size_x,test_tile_map->tile_size_y);
 
     all_entity_moves->submit_move(all_move_requests, *test_tile_map, MAX_GAMEPLAY_ENTITIES);
     all_entity_moves->update_by_velocities(elapsed_frame_time_seconds, *test_tile_map);
     all_gameplay_entities->update_positions(all_entity_moves->current_origin_positions);
 
 
+    tile_to_gameplay_entities->update(*test_tile_map, *all_gameplay_entities);
     // process gameplay events?
     // update bitmap?
 
