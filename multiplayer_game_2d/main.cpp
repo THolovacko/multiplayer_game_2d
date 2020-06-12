@@ -13,7 +13,7 @@
 #pragma warning(disable : 26812)
 
 
-// @remember: should decrease MAX_ENTITIES_PER_TILE when game is finished or when related design decisions are final
+// @optimize: should decrease MAX_ENTITIES_PER_TILE when game is finished or when related design decisions are final
 #define TILE_MAP_WIDTH              17
 #define TILE_MAP_HEIGHT             11
 #define TILE_MAP_COUNT              (TILE_MAP_WIDTH * TILE_MAP_HEIGHT)
@@ -39,8 +39,41 @@ int main()
   tingling.setBuffer(tingling_sound_buffer);
   
   tile_map<TILE_MAP_WIDTH,TILE_MAP_HEIGHT>* test_tile_map = new tile_map<TILE_MAP_WIDTH,TILE_MAP_HEIGHT>("Assets/Images/test_tile_map.png", (float) window_size.x, (float) window_size.y, TILE_MAP_TEXTURE_SIDE_SIZE);
+
+  // generate walls
+  for(int i=0; i < test_tile_map->width; ++i)
+  {
+    test_tile_map->bitmap[i] = static_cast<int>(tile_map_bitmap_type::WALL);
+  }
+
+  for(int i=0; i < test_tile_map->height; ++i)
+  {
+    test_tile_map->bitmap[i * test_tile_map->width] = static_cast<int>(tile_map_bitmap_type::WALL);
+  }
+
+  for(int i=(test_tile_map->tile_count - test_tile_map->width); i < test_tile_map->tile_count; ++i)
+  {
+    test_tile_map->bitmap[i] = static_cast<int>(tile_map_bitmap_type::WALL);
+  }
+
+  for(int i=1; i < test_tile_map->height; ++i)
+  {
+    test_tile_map->bitmap[(i * test_tile_map->width) + (test_tile_map->width - 1)] = static_cast<int>(tile_map_bitmap_type::WALL);
+  }
+
+  for(int tile_index = (test_tile_map->width * 2); tile_index < test_tile_map->tile_count; tile_index += (test_tile_map->width * 2))
+  {
+    for(int tile_index_offset=1; tile_index_offset < test_tile_map->width; ++tile_index_offset)
+    {
+      if (tile_index_offset % 2 == 0)
+        test_tile_map->bitmap[tile_index + tile_index_offset] = static_cast<int>(tile_map_bitmap_type::WALL);
+    }
+  }
+
+
   gameplay_entities<MAX_GAMEPLAY_ENTITIES>* all_gameplay_entities = new gameplay_entities<MAX_GAMEPLAY_ENTITIES>("Assets/Images/gameplay_entities.png", TILE_MAP_TEXTURE_SIDE_SIZE * 3); // need to be able to handle a single gameplay entity per tile
   gameplay_entity_ids_per_tile<TILE_MAP_WIDTH,TILE_MAP_HEIGHT,MAX_GAMEPLAY_ENTITIES,MAX_ENTITIES_PER_TILE>* tile_to_gameplay_entities = new gameplay_entity_ids_per_tile<TILE_MAP_WIDTH,TILE_MAP_HEIGHT,MAX_GAMEPLAY_ENTITIES,MAX_ENTITIES_PER_TILE>();
+
 
   #ifdef _DEBUG
     bool show_debug_data = true;
@@ -119,6 +152,7 @@ int main()
     all_gameplay_entities->collision_vertices[i+3] = sf::Vector2f(1.0f, test_tile_map->tile_size_y - 1.0f);
   }
 
+  // set spawn positions
   all_gameplay_entities->update_position_by_offset( 0, sf::Vector2f(test_tile_map->tile_size_x * 2, 3 * test_tile_map->tile_size_y) );
   all_gameplay_entities->update_position_by_offset( 1, sf::Vector2f(test_tile_map->tile_size_x * 4, 5 * test_tile_map->tile_size_y) );
   all_gameplay_entities->update_position_by_offset( 2, sf::Vector2f(test_tile_map->tile_size_x * 6, 7 * test_tile_map->tile_size_y) );
@@ -141,12 +175,11 @@ int main()
   all_gameplay_entities->update_position_by_offset( 19, sf::Vector2f(test_tile_map->tile_size_x * 5, 1 * test_tile_map->tile_size_y) );
 
 
-  entity_moves<MAX_GAMEPLAY_ENTITIES,TILE_MAP_WIDTH,TILE_MAP_HEIGHT>* all_entity_moves = new entity_moves<MAX_GAMEPLAY_ENTITIES,TILE_MAP_WIDTH,TILE_MAP_HEIGHT>( all_gameplay_entities->all_collision_vertices_origin_positions(), all_gameplay_entities->is_garbage_flags, *test_tile_map);
-  entity_move_request* all_move_requests = new entity_move_request[MAX_GAMEPLAY_ENTITIES];
+  // initialize gameplay_entity moves
+  gameplay_entity_moves<MAX_GAMEPLAY_ENTITIES,TILE_MAP_WIDTH,TILE_MAP_HEIGHT>* all_entity_moves = new gameplay_entity_moves<MAX_GAMEPLAY_ENTITIES,TILE_MAP_WIDTH,TILE_MAP_HEIGHT>( all_gameplay_entities->all_collision_vertices_origin_positions(), all_gameplay_entities->is_garbage_flags, *test_tile_map);
+  gameplay_entity_move_request* all_move_requests = new gameplay_entity_move_request[MAX_GAMEPLAY_ENTITIES];
 
-
-  entity_move_request player_move_request;
-  player_move_request.id = 0;
+  gameplay_entity_move_request player_move_request;
 
 
 
@@ -159,6 +192,7 @@ int main()
   float     elapsed_frame_time_seconds;
 
   srand(static_cast<unsigned int>(time(NULL))); // @optimize: randomn values should probably be pre-generated or at least only generated once
+
 
   while (window.isOpen())
   {
@@ -173,7 +207,8 @@ int main()
         std::cout << "elapsed_frame_time_milliseconds: " << elapsed_frame_time_milliseconds << std::endl;
     #endif
 
-    for (int i = 0; i < MAX_GAMEPLAY_ENTITIES; ++i) all_move_requests[i].id = -1; // reset all move requests
+    // reset all move requests
+    for (int i = 0; i < MAX_GAMEPLAY_ENTITIES; ++i) all_move_requests[i].velocity = sf::Vector2f(0.0f,0.0f);
 
 
 
@@ -189,10 +224,10 @@ int main()
         case sf::Event::KeyPressed:
               if (window_event.key.code == sf::Keyboard::P)      // use for testing random stuff
                                                                  all_gameplay_entities->animation_indexes[1] = (all_gameplay_entities->animation_indexes[1] + 1) % 3;
+              if (window_event.key.code == sf::Keyboard::T)      tingling.play();
               break;
 
         case sf::Event::KeyReleased:
-
               #ifdef _DEBUG
                 if ( window_event.key.code == sf::Keyboard::D ) show_debug_data = !show_debug_data;
                 //if ( window_event.key.code == sf::Keyboard::P ) tile_to_gameplay_entities->print_tile_buckets();
@@ -205,18 +240,19 @@ int main()
       }
     }
 
-    if      (sf::Keyboard::isKeyPressed(sf::Keyboard::Left))   player_move_request.velocity = sf::Vector2f( (float) -2 * test_tile_map->tile_size_x, 0.0f );
-    else if (sf::Keyboard::isKeyPressed(sf::Keyboard::Right))  player_move_request.velocity = sf::Vector2f( (float) 2 * test_tile_map->tile_size_x, 0.0f  );
-    else if (sf::Keyboard::isKeyPressed(sf::Keyboard::Up))     player_move_request.velocity = sf::Vector2f( 0.0f, (float) -2 * test_tile_map->tile_size_y );
-    else if (sf::Keyboard::isKeyPressed(sf::Keyboard::Down))   player_move_request.velocity = sf::Vector2f( 0.0f, (float)  2 * test_tile_map->tile_size_y );
+    if      (sf::Keyboard::isKeyPressed(sf::Keyboard::Left))   player_move_request.velocity = sf::Vector2f( (float) -3 * test_tile_map->tile_size_x, 0.0f );
+    else if (sf::Keyboard::isKeyPressed(sf::Keyboard::Right))  player_move_request.velocity = sf::Vector2f( (float) 3 * test_tile_map->tile_size_x, 0.0f  );
+    else if (sf::Keyboard::isKeyPressed(sf::Keyboard::Up))     player_move_request.velocity = sf::Vector2f( 0.0f, (float) -3 * test_tile_map->tile_size_y );
+    else if (sf::Keyboard::isKeyPressed(sf::Keyboard::Down))   player_move_request.velocity = sf::Vector2f( 0.0f, (float)  3 * test_tile_map->tile_size_y );
 
 
 
     /* calculate gameplay stuff */
     player_move_request.current_origin_position = all_gameplay_entities->collision_vertices[0];
 
-    if ( (all_entity_moves->velocities[0].x && (std::abs(all_entity_moves->destination_origin_positions[0].x - all_entity_moves->current_origin_positions[0].x) >= (test_tile_map->tile_size_x / 2.0f)) ) ||
-         (all_entity_moves->velocities[0].y && (std::abs(all_entity_moves->destination_origin_positions[0].y - all_entity_moves->current_origin_positions[0].y) >= (test_tile_map->tile_size_y / 2.0f)) ) )
+    // if already moving and passed distance threshold then chamber move else if already moving do nothing else if stationary then move player
+    if ( (all_entity_moves->velocities[0].x && (std::abs(all_entity_moves->destination_origin_positions[0].x - all_entity_moves->current_origin_positions[0].x) >= (test_tile_map->tile_size_x / 3.0f)) ) ||
+         (all_entity_moves->velocities[0].y && (std::abs(all_entity_moves->destination_origin_positions[0].y - all_entity_moves->current_origin_positions[0].y) >= (test_tile_map->tile_size_y / 3.0f)) ) )
     {
       if (player_move_request.velocity.x > 0) player_move_request.destination_origin_position = player_move_request.current_origin_position + sf::Vector2f(test_tile_map->tile_size_x,0.0f);
       if (player_move_request.velocity.x < 0) player_move_request.destination_origin_position = player_move_request.current_origin_position + sf::Vector2f(-1.0f * test_tile_map->tile_size_x, 0.0f);
@@ -243,40 +279,7 @@ int main()
     else player_move_request.velocity = sf::Vector2f(0.0f, 0.0f); // reset chamber
  
 
-    // generate walls
-    for(int i=0; i < test_tile_map->width; ++i)
-    {
-      test_tile_map->bitmap[i] = static_cast<int>(tile_map_bitmap_type::WALL);
-    }
-
-    for(int i=0; i < test_tile_map->height; ++i)
-    {
-      test_tile_map->bitmap[i * test_tile_map->width] = static_cast<int>(tile_map_bitmap_type::WALL);
-    }
-
-    for(int i=(test_tile_map->tile_count - test_tile_map->width); i < test_tile_map->tile_count; ++i)
-    {
-      test_tile_map->bitmap[i] = static_cast<int>(tile_map_bitmap_type::WALL);
-    }
-
-    for(int i=1; i < test_tile_map->height; ++i)
-    {
-      test_tile_map->bitmap[(i * test_tile_map->width) + (test_tile_map->width - 1)] = static_cast<int>(tile_map_bitmap_type::WALL);
-    }
-
-    for(int tile_index = (test_tile_map->width * 2); tile_index < test_tile_map->tile_count; tile_index += (test_tile_map->width * 2))
-    {
-      for(int tile_index_offset=1; tile_index_offset < test_tile_map->width; ++tile_index_offset)
-      {
-        if (tile_index_offset % 2 == 0)
-          test_tile_map->bitmap[tile_index + tile_index_offset] = static_cast<int>(tile_map_bitmap_type::WALL);
-      }
-    }
-
-    test_tile_map->update_tex_coords_from_bitmap();
-
-
-    // update movement
+    // generate test movement requests
     generate_move_request_input stress_test_move_requests[MAX_GAMEPLAY_ENTITIES];
     for(int i=0; i < 14; ++i)
     {
@@ -301,20 +304,25 @@ int main()
     }
     all_gameplay_entities->generate_move_requests(stress_test_move_requests,all_move_requests, 14,test_tile_map->tile_size_x,test_tile_map->tile_size_y);
 
-    all_entity_moves->submit_move(all_move_requests, *test_tile_map, MAX_GAMEPLAY_ENTITIES);
+
+    // update movement
+    all_entity_moves->submit_all_moves(all_move_requests, *test_tile_map, all_gameplay_entities->is_garbage_flags);
     all_entity_moves->update_by_velocities(elapsed_frame_time_seconds, *test_tile_map);
-    all_gameplay_entities->update_positions(all_entity_moves->current_origin_positions);
+    all_gameplay_entities->set_all_positions(all_entity_moves->current_origin_positions);
 
 
     tile_to_gameplay_entities->update(*test_tile_map, *all_gameplay_entities);
-    // process gameplay events?
-    // update bitmap?
 
-    all_gameplay_entities->update_tex_coords(elapsed_frame_time_seconds);
+
+    // handle tile_map triggers
+
+
 
     /* draw */
-    window.clear(sf::Color::Black);
+    test_tile_map->update_tex_coords_from_bitmap();
+    all_gameplay_entities->update_tex_coords(elapsed_frame_time_seconds);
 
+    window.clear(sf::Color::Black);
     window.draw(test_tile_map->vertex_buffer, test_tile_map->vertex_count, sf::Quads, &test_tile_map->tiles_texture);
     window.draw(all_gameplay_entities->vertex_buffer, all_gameplay_entities->vertex_count, sf::Quads, &all_gameplay_entities->sprite_sheet_texture);
 
