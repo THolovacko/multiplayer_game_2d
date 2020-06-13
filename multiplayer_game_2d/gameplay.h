@@ -28,7 +28,7 @@ struct generate_move_request_input
 
 struct gameplay_entity_move_request
 {
-  // id is implicit from array index
+  // implicit entity id
   sf::Vector2f current_origin_position;
   sf::Vector2f destination_origin_position;
   sf::Vector2f velocity;
@@ -53,6 +53,7 @@ template<int p_max_size>
 struct gameplay_entities
 {
   /* @remember: all hitboxes at max are tile-width */
+  /* @remember: origin is top-left vertex          */
 
   sf::Vertex vertex_buffer[p_max_size * 4];           // 4 vertices per entity
   sf::Texture sprite_sheet_texture;                   // a sprite sheet where each row is a separate entity and each column is a different frame for an animation (the first row is transparent)
@@ -108,10 +109,8 @@ struct gameplay_entities
     }
   }
 
-  const sf::Vector2f* all_collision_vertices_origin_positions() const
+  const sf::Vector2f* all_collision_vertices_origin_positions()
   {
-    static sf::Vector2f collision_vertices_origin_positions[p_max_size];
-
     for (int id=0; id < p_max_size; ++id)
     {
       collision_vertices_origin_positions[id] = collision_vertices[id * 4];
@@ -157,12 +156,10 @@ struct gameplay_entities
     for (int i=0; i < input_count; ++i)
     {
       input_id = input[i].gameplay_entity_id;
+      position_offset = sf::Vector2f( tile_size_x * static_cast<float>(input[i].direction().x), tile_size_y * static_cast<float>(input[i].direction().y) );
 
       all_move_requests[input_id].velocity = input[i].velocity;
       all_move_requests[input_id].current_origin_position = collision_vertices[input_id * 4];
-
-      position_offset = sf::Vector2f( tile_size_x * static_cast<float>(input[i].direction().x), tile_size_y * static_cast<float>(input[i].direction().y) );
-
       all_move_requests[input_id].destination_origin_position = all_move_requests[input_id].current_origin_position + position_offset;
     }
   }
@@ -268,7 +265,7 @@ struct gameplay_entities
       sf::Vector2f current_velocity_position_offset;
       float current_sprite_sheet_y_position;
       float current_sprite_sheet_x_position;
-
+      sf::Vector2f collision_vertices_origin_positions[p_max_size];
 };
 
 
@@ -437,9 +434,10 @@ struct gameplay_entity_ids_per_tile
       current_max_tile_bucket_index_limit = current_tile_bucket_index + p_max_entities_per_tile;
 
       // find open tile_bucket for current_tile_index
-      for(; ( current_tile_bucket_index < current_max_tile_bucket_index_limit )
-                        && (tile_buckets[current_tile_bucket_index] != -1)
-                        && (tile_buckets[current_tile_bucket_index] != current_gameplay_entity_id); ++current_tile_bucket_index) {};
+      for(; ( current_tile_bucket_index < current_max_tile_bucket_index_limit )     &&
+            (tile_buckets[current_tile_bucket_index] != -1)                         &&
+            (tile_buckets[current_tile_bucket_index] != current_gameplay_entity_id); ++current_tile_bucket_index
+         ) {};
 
       tile_buckets[current_tile_bucket_index] = current_gameplay_entity_id;
     }
@@ -487,7 +485,7 @@ struct gameplay_entity_moves
 
   private:
     int tile_index_to_current_entity_id[tile_map_width * tile_map_height];      // the entity id with its origin located in specified tile
-    int tile_index_to_destination_entity_id[tile_map_width * tile_map_height];  // the entity id moving into specified tile
+    int tile_index_to_destination_entity_id[tile_map_width * tile_map_height];  // the entity id with its destination_origin in specified tile (its currently moving into specified tile)
 
     sf::Vector2f request_velocity;
     int chain_destination_tile_index;
@@ -500,16 +498,18 @@ struct gameplay_entity_moves
   gameplay_entity_moves(const sf::Vector2f* const all_origin_positions, const std::bitset<max_entity_count>& is_garbage_flags, const tile_map<tile_map_width,tile_map_height>& p_tile_map)
   {
     memset(tile_index_to_current_entity_id, -1, sizeof(tile_index_to_current_entity_id));
+    memset(tile_index_to_destination_entity_id, -1, sizeof(tile_index_to_destination_entity_id));
+    memset(chain_entity_ids, -1, sizeof(chain_entity_ids));
+
     for(int id=0; id < max_entity_count; ++id)
     {
       if (is_garbage_flags[id]) continue;
       tile_index_to_current_entity_id[p_tile_map.calculate_tile_map_index(all_origin_positions[id])] = id;
       current_origin_positions[id] = all_origin_positions[id];
     }
+
     for(auto& position : destination_origin_positions) position = sf::Vector2f(0.0f, 0.0f);
     for(auto& velocity : velocities) velocity                   = sf::Vector2f(0.0f, 0.0f);
-    memset(tile_index_to_destination_entity_id, -1, sizeof(tile_index_to_destination_entity_id));
-    memset(chain_entity_ids, -1, sizeof(chain_entity_ids));
   }
 
   void submit_all_moves(gameplay_entity_move_request* const all_move_requests, const tile_map<tile_map_width,tile_map_height>& p_tile_map, const std::bitset<max_entity_count>& is_garbage_flags)
@@ -546,12 +546,12 @@ struct gameplay_entity_moves
         destination_other_entity_id = tile_index_to_destination_entity_id[chain_destination_tile_index];
 
         // submit chained moves if chain leads to empty tile
-        if ( (current_other_entity_id == -1) && (destination_other_entity_id == -1) ) break; // chain leads to empty tile, so break and register moves for chained entities
+        if ( (current_other_entity_id == -1) && (destination_other_entity_id == -1) ) break;
 
-        // cancel move if chain leads to tile with moving entities
+        // cancel move if tile has moving entity or add stationary entity to chain
         if (current_other_entity_id != -1)
         {
-          if (velocities[current_other_entity_id].x || velocities[current_other_entity_id].y)  // chain leads to tile with moving entities
+          if (velocities[current_other_entity_id].x || velocities[current_other_entity_id].y) // cancel move if chain leads to tile with moving entities
           {
             memset(chain_entity_ids, -1, sizeof(chain_entity_ids));
             chain_index = 0;
@@ -572,37 +572,20 @@ struct gameplay_entity_moves
           break;
         }
 
-        // calculate next tile using velocity
-        if (request_velocity.x)
-        {
-          chain_destination_tile_index = chain_destination_tile_index + static_cast<int>(all_move_requests[request_entity_id].direction().x);
-        }
-        else // request_velocity.y
-        {
-          chain_destination_tile_index = chain_destination_tile_index + (tile_map_width * static_cast<int>(all_move_requests[request_entity_id].direction().y));
-        }
+        chain_destination_tile_index = ( (chain_destination_tile_index + static_cast<int>(all_move_requests[request_entity_id].direction().x)) * static_cast<int>(request_velocity.x != 0) ) +
+                                       ( (chain_destination_tile_index + (tile_map_width * static_cast<int>(all_move_requests[request_entity_id].direction().y))) * static_cast<int>(request_velocity.y != 0) );
       }
 
-      // update request velocity to take collision resistance into account
-      if (request_velocity.x)
-      {
-        request_velocity.x = request_velocity.x / static_cast<float>(chain_index);
-      }
-      else // request_velocity.y
-      {
-        request_velocity.y = request_velocity.y / static_cast<float>(chain_index);
-      }
 
       // register moves for each chained entity
       for(int chain_entity_ids_index=0; chain_entity_ids_index < chain_index; ++chain_entity_ids_index)
       {
         int id = chain_entity_ids[chain_entity_ids_index];
-
         sf::Vector2f offset = sf::Vector2f( (p_tile_map.tile_size_x * all_move_requests[request_entity_id].direction().x * static_cast<float>(chain_entity_ids_index)), (p_tile_map.tile_size_y * all_move_requests[request_entity_id].direction().y * static_cast<float>(chain_entity_ids_index)) );
 
         current_origin_positions[id]     = all_move_requests[request_entity_id].current_origin_position     + offset;
         destination_origin_positions[id] = all_move_requests[request_entity_id].destination_origin_position + offset;
-        velocities[id] = request_velocity;
+        velocities[id]                   = request_velocity / static_cast<float>(chain_index);
 
         tile_index_to_current_entity_id[ p_tile_map.calculate_tile_map_index(current_origin_positions[id]) ]         = id;
         tile_index_to_destination_entity_id[ p_tile_map.calculate_tile_map_index(destination_origin_positions[id]) ] = id;
@@ -614,59 +597,29 @@ struct gameplay_entity_moves
   {
     for(int id=0; id < max_entity_count; ++id)
     {
-      if ( !(velocities[id].x || velocities[id].y) ) continue;
+      if ( !(velocities[id].x || velocities[id].y) ) continue;  // nothing to update if not moving
 
       current_origin_positions[id] += (velocities[id] * timestep);
 
-      if (velocities[id].x)
+      bool reached_destination = ( (velocities[id].x > 0.0f) && (current_origin_positions[id].x >= destination_origin_positions[id].x) ) ||
+                                 ( (velocities[id].x < 0.0f) && (current_origin_positions[id].x <= destination_origin_positions[id].x) ) ||
+                                 ( (velocities[id].y > 0.0f) && (current_origin_positions[id].y >= destination_origin_positions[id].y) ) ||
+                                 ( (velocities[id].y < 0.0f) && (current_origin_positions[id].y <= destination_origin_positions[id].y) );
+                                
+      if (reached_destination)
       {
-        if (velocities[id].x > 0.0f)
-        {
-          if (current_origin_positions[id].x >= destination_origin_positions[id].x)
-          {
-            current_origin_positions[id].x = destination_origin_positions[id].x;
-            velocities[id] = sf::Vector2f(0.0f,0.0f);
-            if (tile_index_to_current_entity_id[p_tile_map.calculate_tile_map_index(current_origin_positions[id]) - 1] == id) tile_index_to_current_entity_id[p_tile_map.calculate_tile_map_index(current_origin_positions[id]) - 1] = -1;
-            tile_index_to_current_entity_id[p_tile_map.calculate_tile_map_index(current_origin_positions[id])]     = id;
-            tile_index_to_destination_entity_id[p_tile_map.calculate_tile_map_index(current_origin_positions[id])] = -1;
-          }
-        }
-        else  // negative velocity
-        {
-          if (current_origin_positions[id].x <= destination_origin_positions[id].x)
-          {
-            current_origin_positions[id].x = destination_origin_positions[id].x;
-            velocities[id] = sf::Vector2f(0.0f,0.0f);
-            if (tile_index_to_current_entity_id[p_tile_map.calculate_tile_map_index(current_origin_positions[id]) + 1] == id) tile_index_to_current_entity_id[p_tile_map.calculate_tile_map_index(current_origin_positions[id]) + 1] = -1;
-            tile_index_to_current_entity_id[p_tile_map.calculate_tile_map_index(current_origin_positions[id])]     = id;
-            tile_index_to_destination_entity_id[p_tile_map.calculate_tile_map_index(current_origin_positions[id])] = -1;
-          }
-        }
-      }
-      else // velocities[id].y
-      {
-        if (velocities[id].y > 0.0f)
-        {
-          if (current_origin_positions[id].y >= destination_origin_positions[id].y)
-          {
-            current_origin_positions[id].y = destination_origin_positions[id].y;
-            velocities[id] = sf::Vector2f(0.0f,0.0f);
-            if (tile_index_to_current_entity_id[p_tile_map.calculate_tile_map_index(current_origin_positions[id]) - tile_map_width] == id) tile_index_to_current_entity_id[p_tile_map.calculate_tile_map_index(current_origin_positions[id]) - tile_map_width] = -1;
-            tile_index_to_current_entity_id[p_tile_map.calculate_tile_map_index(current_origin_positions[id])]                  = id;
-            tile_index_to_destination_entity_id[p_tile_map.calculate_tile_map_index(current_origin_positions[id])]              = -1;
-          }
-        }
-        else // negative velocity
-        {
-          if (current_origin_positions[id].y <= destination_origin_positions[id].y)
-          {
-            current_origin_positions[id].y = destination_origin_positions[id].y;
-            velocities[id] = sf::Vector2f(0.0f,0.0f);
-            if (tile_index_to_current_entity_id[p_tile_map.calculate_tile_map_index(current_origin_positions[id]) + tile_map_width] == id) tile_index_to_current_entity_id[p_tile_map.calculate_tile_map_index(current_origin_positions[id]) + tile_map_width] = -1;
-            tile_index_to_current_entity_id[p_tile_map.calculate_tile_map_index(current_origin_positions[id])]     = id;
-            tile_index_to_destination_entity_id[p_tile_map.calculate_tile_map_index(current_origin_positions[id])] = -1;
-          }
-        }
+        current_origin_positions[id] = destination_origin_positions[id];
+
+        int tile_index          = p_tile_map.calculate_tile_map_index(current_origin_positions[id]);
+        int previous_tile_index = ( (tile_index - 1)              * static_cast<int>(velocities[id].x > 0.0f) ) +
+                                  ( (tile_index + 1)              * static_cast<int>(velocities[id].x < 0.0f) ) +
+                                  ( (tile_index - tile_map_width) * static_cast<int>(velocities[id].y > 0.0f) ) +
+                                  ( (tile_index + tile_map_width) * static_cast<int>(velocities[id].y < 0.0f) );
+   
+        velocities[id] = sf::Vector2f(0.0f,0.0f);
+        if (tile_index_to_current_entity_id[previous_tile_index] == id) tile_index_to_current_entity_id[previous_tile_index] = -1;
+        tile_index_to_current_entity_id[tile_index]     = id;
+        tile_index_to_destination_entity_id[tile_index] = -1;
       }
     }
   }
