@@ -280,12 +280,6 @@ enum class tile_map_bitmap_type : int // these are also the sprite sheet indexes
   WALL = 4
 };
 
-struct tile_map_indexes
-{
-  int x;
-  int y;
-};
-
 template<int p_width, int p_height>
 struct tile_map
 {

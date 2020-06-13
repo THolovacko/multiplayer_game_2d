@@ -70,6 +70,11 @@ int main()
     }
   }
 
+  // create tile_map triggers
+  test_tile_map->bitmap[18] = static_cast<int>(tile_map_bitmap_type::TEST);
+  test_tile_map->bitmap[45] = static_cast<int>(tile_map_bitmap_type::TEST);
+  test_tile_map->bitmap[63] = static_cast<int>(tile_map_bitmap_type::TEST);
+  test_tile_map->bitmap[99] = static_cast<int>(tile_map_bitmap_type::TEST);
 
   gameplay_entities<MAX_GAMEPLAY_ENTITIES>* all_gameplay_entities = new gameplay_entities<MAX_GAMEPLAY_ENTITIES>("Assets/Images/gameplay_entities.png", TILE_MAP_TEXTURE_SIDE_SIZE * 3); // need to be able to handle a single gameplay entity per tile
   gameplay_entity_ids_per_tile<TILE_MAP_WIDTH,TILE_MAP_HEIGHT,MAX_GAMEPLAY_ENTITIES,MAX_ENTITIES_PER_TILE>* tile_to_gameplay_entities = new gameplay_entity_ids_per_tile<TILE_MAP_WIDTH,TILE_MAP_HEIGHT,MAX_GAMEPLAY_ENTITIES,MAX_ENTITIES_PER_TILE>();
@@ -311,10 +316,31 @@ int main()
     all_gameplay_entities->set_all_positions(all_entity_moves->current_origin_positions);
 
 
+    // sort gameplay entities by tile
     tile_to_gameplay_entities->update(*test_tile_map, *all_gameplay_entities);
 
 
-    // handle tile_map triggers
+    // activate tile_map triggers
+    for(int tile_index=0; tile_index < test_tile_map->tile_count; ++tile_index)
+    {
+      int gameplay_entity_id;
+      switch ( static_cast<tile_map_bitmap_type>(test_tile_map->bitmap[tile_index]) )
+      {
+        case tile_map_bitmap_type::TEST:
+             gameplay_entity_id = tile_to_gameplay_entities->tile_buckets[tile_index * MAX_ENTITIES_PER_TILE];
+
+             if(gameplay_entity_id != -1)
+             {
+               all_gameplay_entities->animation_indexes[gameplay_entity_id] = (all_gameplay_entities->animation_indexes[gameplay_entity_id ] + 1) % 3;
+               tingling.play();
+               test_tile_map->bitmap[tile_index] = 0;
+             }
+             break;
+
+        default:
+             break;
+      }
+    }
 
 
 
