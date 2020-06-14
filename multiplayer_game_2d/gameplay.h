@@ -3,6 +3,8 @@
 #include <SFML/Graphics.hpp>
 #include <bitset>
 #include <cmath>
+#include <assert.h>
+#include <limits>
 
 
 
@@ -52,8 +54,7 @@ enum class gameplay_entity_type : int  // these are also the sprite sheet indexe
 template<int p_max_size>
 struct gameplay_entities
 {
-  /* @remember: all hitboxes at max are tile-width */
-  /* @remember: origin is top-left vertex          */
+  /* @remember: origin is top-left vertex */
 
   sf::Vertex vertex_buffer[p_max_size * 4];           // 4 vertices per entity
   sf::Texture sprite_sheet_texture;                   // a sprite sheet where each row is a separate entity and each column is a different frame for an animation (the first row is transparent)
@@ -69,6 +70,8 @@ struct gameplay_entities
 
   gameplay_entities(const char* sprite_sheet_texture_file_path, const int p_sprite_sheet_side_length) : sprite_sheet_side_length(p_sprite_sheet_side_length)
   {
+    static_assert(p_max_size <= std::numeric_limits<int>::max(), "Max gameplay entity count is too big to be represented by int");
+
     sprite_sheet_texture.loadFromFile(sprite_sheet_texture_file_path);
 
     for(int i=0; i < p_max_size; ++i)
@@ -298,6 +301,8 @@ struct tile_map
 
   tile_map(const char* tiles_texture_file_path, const float window_size_x, const float window_size_y, const int p_tile_side_length) : tile_size_x(window_size_x / width),tile_size_y(window_size_y / height), tile_sheet_side_length(p_tile_side_length)
   {
+    static_assert( (p_width * p_height) <= std::numeric_limits<int>::max(), "Max tile count is too big to be represented by int" );
+
     tiles_texture.loadFromFile(tiles_texture_file_path);
 
     // assign screen coordinates and texture coordinates for background
@@ -311,13 +316,13 @@ struct tile_map
     this->vertex_buffer[3].texCoords = sf::Vector2f(0.0f, (float) tile_sheet_side_length);
 
     // assign screen coordinates for each vertex in tiles
-    for(int y=0,vertex=4; y < height  ; ++y)
-    for(int x=0         ; x < width   ; ++x, vertex+=4)
+    for(int y=0,vertex=4; y < height; ++y)
+    for(int x=0         ; x < width ; ++x, vertex+=4)
     {
-      this->vertex_buffer[vertex].position   = sf::Vector2f(x * tile_size_x, y * tile_size_y);
+      this->vertex_buffer[vertex].position   = sf::Vector2f(x * tile_size_x    , y * tile_size_y);
       this->vertex_buffer[vertex+1].position = sf::Vector2f((x+1) * tile_size_x, y * tile_size_y);
       this->vertex_buffer[vertex+2].position = sf::Vector2f((x+1) * tile_size_x, (y+1) * tile_size_y);
-      this->vertex_buffer[vertex+3].position = sf::Vector2f(x * tile_size_x, (y+1) * tile_size_y);
+      this->vertex_buffer[vertex+3].position = sf::Vector2f(x * tile_size_x    , (y+1) * tile_size_y);
     }
   }
 
@@ -448,7 +453,6 @@ struct gameplay_entity_ids_per_tile
         for(int collision_index=0; collision_index < p_max_entities_per_tile; ++collision_index)
         {
           int entity_id = tile_buckets[i + collision_index];
-          //if (entity_id == -1) continue;
           std::cout << "\tid: " << entity_id << std::endl;
         }
       }
@@ -483,7 +487,7 @@ struct gameplay_entity_moves
 
     sf::Vector2f request_velocity;
     int chain_destination_tile_index;
-    int chain_entity_ids[tile_map_width];  // @remember: width is assumed always larger than height so it's the max chain size
+    int chain_entity_ids[tile_map_width];
     int chain_index;
     int current_other_entity_id;
     int destination_other_entity_id;
@@ -491,6 +495,8 @@ struct gameplay_entity_moves
 
   gameplay_entity_moves(const sf::Vector2f* const all_origin_positions, const std::bitset<max_entity_count>& is_garbage_flags, const tile_map<tile_map_width,tile_map_height>& p_tile_map)
   {
+    static_assert(tile_map_width >= tile_map_height, "tile_map height is larger than width must change chain_entity_ids_size");
+
     memset(tile_index_to_current_entity_id, -1, sizeof(tile_index_to_current_entity_id));
     memset(tile_index_to_destination_entity_id, -1, sizeof(tile_index_to_destination_entity_id));
     memset(chain_entity_ids, -1, sizeof(chain_entity_ids));
@@ -526,7 +532,7 @@ struct gameplay_entity_moves
       chain_entity_ids[chain_index] = request_entity_id;
       ++chain_index;
 
-      for(int chain_loop_index=0; chain_loop_index < tile_map_width; ++chain_loop_index)  // @remember: tile_map_width is current chain move limit because assumed larger than tile map height
+      for(int chain_loop_index=0; chain_loop_index < sizeof(chain_entity_ids); ++chain_loop_index)
       {
         // cancel move if entity is moving into a wall
         if ( p_tile_map.bitmap[chain_destination_tile_index] == static_cast<int>(tile_map_bitmap_type::WALL) )

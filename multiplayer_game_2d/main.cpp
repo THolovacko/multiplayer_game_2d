@@ -7,20 +7,21 @@
 #include <cmath>
 #include <cstdlib>
 #include <time.h>
+#include <assert.h>
+#include <limits>
 #include "gameplay.h"
 
 
-#pragma warning(disable : 26812)
+#pragma warning(disable : 26812)  // allow unscoped enums becasue SFML uses them
 
 
 // @optimize: should decrease MAX_ENTITIES_PER_TILE when game is finished or when related design decisions are final
 #define TILE_MAP_WIDTH              17
 #define TILE_MAP_HEIGHT             11
-#define TILE_MAP_COUNT              (TILE_MAP_WIDTH * TILE_MAP_HEIGHT)
-#define MAX_GAMEPLAY_ENTITIES       TILE_MAP_COUNT
+#define TILE_COUNT                  (TILE_MAP_WIDTH * TILE_MAP_HEIGHT)
+#define MAX_GAMEPLAY_ENTITIES       TILE_COUNT
 #define TILE_MAP_TEXTURE_SIDE_SIZE  64                                  // in pixels
-#define MAX_ENTITIES_PER_TILE       10                                  // potential game objects in an single tile
-#define MAX_CHAIN_COLLISIONS        (2 * TILE_MAP_WIDTH)
+#define MAX_ENTITIES_PER_TILE       10                                  // potential game object count in an single tile
 
 
 
@@ -212,7 +213,7 @@ int main()
         std::cout << "elapsed_frame_time_milliseconds: " << elapsed_frame_time_milliseconds << std::endl;
     #endif
 
-    // reset all move requests
+    // reset all move requests by setting request velocities to (0,0)
     for (int i = 0; i < MAX_GAMEPLAY_ENTITIES; ++i) all_move_requests[i].velocity = sf::Vector2f(0.0f,0.0f);
 
 
@@ -227,9 +228,7 @@ int main()
               break;
 
         case sf::Event::KeyPressed:
-              if (window_event.key.code == sf::Keyboard::P)      // use for testing random stuff
-                                                                 all_gameplay_entities->animation_indexes[1] = (all_gameplay_entities->animation_indexes[1] + 1) % 3;
-              if (window_event.key.code == sf::Keyboard::T)      tingling.play();
+              if (window_event.key.code == sf::Keyboard::P) all_gameplay_entities->animation_indexes[1] = (all_gameplay_entities->animation_indexes[1] + 1) % 3;
               break;
 
         case sf::Event::KeyReleased:
@@ -371,7 +370,8 @@ int main()
 
     window.display();
 
-    // handle underflow
+
+
     if (elapsed_frame_time_seconds == 0.0f) Sleep(1);
   } // end of game loop
 
