@@ -19,7 +19,7 @@ struct tile_map;
 /* data declarations */
 struct generate_move_request_input
 {
-  int gameplay_entity_id;
+  int gameplay_entity_id = -1;
   sf::Vector2f velocity;
 
   sf::Vector2f direction() const
@@ -126,8 +126,8 @@ struct gameplay_entities
   {
     for(int entity_index=0,vertex=0; entity_index < max_size; ++entity_index,vertex += 4)
     {
-      current_sprite_sheet_y_position = (float) (sprite_sheet_texture.getSize().y - sprite_sheet_side_length) - static_cast<int>(types[entity_index]) * sprite_sheet_side_length * !is_garbage_flags[entity_index];
-      current_sprite_sheet_x_position = (float) animation_indexes[entity_index] * sprite_sheet_side_length * !is_garbage_flags[entity_index];
+      float current_sprite_sheet_y_position = (float) (sprite_sheet_texture.getSize().y - sprite_sheet_side_length) - static_cast<int>(types[entity_index]) * sprite_sheet_side_length * !is_garbage_flags[entity_index];
+      float current_sprite_sheet_x_position = (float) animation_indexes[entity_index] * sprite_sheet_side_length * !is_garbage_flags[entity_index];
 
       vertex_buffer[vertex].texCoords   = sf::Vector2f(current_sprite_sheet_x_position, current_sprite_sheet_y_position);
       vertex_buffer[vertex+1].texCoords = sf::Vector2f(current_sprite_sheet_x_position + sprite_sheet_side_length, current_sprite_sheet_y_position);
@@ -265,9 +265,6 @@ struct gameplay_entities
   #endif
 
     private:
-      sf::Vector2f current_velocity_position_offset;
-      float current_sprite_sheet_y_position;
-      float current_sprite_sheet_x_position;
       sf::Vector2f collision_vertices_origin_positions[p_max_size];
 };
 
@@ -420,17 +417,17 @@ struct gameplay_entity_ids_per_tile
   {
     memset(tile_buckets, -1, sizeof(tile_buckets));
 
-    for(current_collision_vertex=0; current_collision_vertex < p_game_entities.vertex_count; ++current_collision_vertex) // vertex_count is same as collision_vertex_count
+    for(int current_collision_vertex=0; current_collision_vertex < p_game_entities.vertex_count; ++current_collision_vertex) // vertex_count is same as collision_vertex_count
     {
-      current_gameplay_entity_id = current_collision_vertex / 4;
+      int current_gameplay_entity_id = current_collision_vertex / 4;
       if (p_game_entities.is_garbage_flags[current_gameplay_entity_id]) continue;
 
-      current_y_index = static_cast<int>(p_game_entities.collision_vertices[current_collision_vertex].y / p_tile_map.tile_size_y);
-      current_x_index = static_cast<int>(p_game_entities.collision_vertices[current_collision_vertex].x / p_tile_map.tile_size_x);
+      int current_y_index = static_cast<int>(p_game_entities.collision_vertices[current_collision_vertex].y / p_tile_map.tile_size_y);
+      int current_x_index = static_cast<int>(p_game_entities.collision_vertices[current_collision_vertex].x / p_tile_map.tile_size_x);
 
-      current_tile_index = (current_y_index * p_tile_map.width) + current_x_index;
-      current_tile_bucket_index = current_tile_index * p_max_entities_per_tile;
-      current_max_tile_bucket_index_limit = current_tile_bucket_index + p_max_entities_per_tile;
+      int current_tile_index = (current_y_index * p_tile_map.width) + current_x_index;
+      int current_tile_bucket_index = current_tile_index * p_max_entities_per_tile;
+      int current_max_tile_bucket_index_limit = current_tile_bucket_index + p_max_entities_per_tile;
 
       // find open tile_bucket for current_tile_index
       for(; ( current_tile_bucket_index < current_max_tile_bucket_index_limit )     &&
@@ -460,15 +457,6 @@ struct gameplay_entity_ids_per_tile
     }
   #endif
 
-  private:
-    int current_tile_index;
-    int current_tile_bucket_index;
-    int current_gameplay_entity_id;
-    int current_collision_vertex;
-    int current_y_index;
-    int current_x_index;
-    int current_max_tile_bucket_index_limit;
-    int current_gameplay_entity_id_bucket_index_limit;
 }; // gameplay_entity_ids_per_tile
 
 
@@ -484,13 +472,6 @@ struct gameplay_entity_moves
   private:
     int tile_index_to_current_entity_id[tile_map_width * tile_map_height];      // the entity id with its origin located in specified tile
     int tile_index_to_destination_entity_id[tile_map_width * tile_map_height];  // the entity id with its destination_origin in specified tile (its currently moving into specified tile)
-
-    sf::Vector2f request_velocity;
-    int chain_destination_tile_index;
-    int chain_entity_ids[tile_map_width];
-    int chain_index;
-    int current_other_entity_id;
-    int destination_other_entity_id;
   public:
 
   gameplay_entity_moves(const sf::Vector2f* const all_origin_positions, const std::bitset<max_entity_count>& is_garbage_flags, const tile_map<tile_map_width,tile_map_height>& p_tile_map)
@@ -499,7 +480,6 @@ struct gameplay_entity_moves
 
     memset(tile_index_to_current_entity_id, -1, sizeof(tile_index_to_current_entity_id));
     memset(tile_index_to_destination_entity_id, -1, sizeof(tile_index_to_destination_entity_id));
-    memset(chain_entity_ids, -1, sizeof(chain_entity_ids));
 
     for(int id=0; id < max_entity_count; ++id)
     {
@@ -522,9 +502,10 @@ struct gameplay_entity_moves
          ( velocities[request_entity_id].x || velocities[request_entity_id].y ))
          { continue; }
 
-      request_velocity = all_move_requests[request_entity_id].velocity;
-      chain_destination_tile_index = p_tile_map.calculate_tile_map_index(all_move_requests[request_entity_id].destination_origin_position);
-      chain_index = 0;
+      sf::Vector2f request_velocity = all_move_requests[request_entity_id].velocity;
+      int chain_destination_tile_index = p_tile_map.calculate_tile_map_index(all_move_requests[request_entity_id].destination_origin_position);
+      int chain_index = 0;
+      int chain_entity_ids[tile_map_width];
       memset(chain_entity_ids, -1, sizeof(chain_entity_ids));
 
 
@@ -542,8 +523,8 @@ struct gameplay_entity_moves
           break;
         }
 
-        current_other_entity_id     = tile_index_to_current_entity_id[chain_destination_tile_index];
-        destination_other_entity_id = tile_index_to_destination_entity_id[chain_destination_tile_index];
+        int current_other_entity_id     = tile_index_to_current_entity_id[chain_destination_tile_index];
+        int destination_other_entity_id = tile_index_to_destination_entity_id[chain_destination_tile_index];
 
         // submit chained moves if chain leads to empty tile
         if ( (current_other_entity_id == -1) && (destination_other_entity_id == -1) ) break;

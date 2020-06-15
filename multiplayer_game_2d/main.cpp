@@ -184,7 +184,6 @@ int main()
   // initialize gameplay_entity moves
   gameplay_entity_moves<MAX_GAMEPLAY_ENTITIES,TILE_MAP_WIDTH,TILE_MAP_HEIGHT>* all_entity_moves = new gameplay_entity_moves<MAX_GAMEPLAY_ENTITIES,TILE_MAP_WIDTH,TILE_MAP_HEIGHT>( all_gameplay_entities->all_collision_vertices_origin_positions(), all_gameplay_entities->is_garbage_flags, *test_tile_map);
   gameplay_entity_move_request* all_move_requests = new gameplay_entity_move_request[MAX_GAMEPLAY_ENTITIES];
-
   gameplay_entity_move_request player_move_request;
 
 
