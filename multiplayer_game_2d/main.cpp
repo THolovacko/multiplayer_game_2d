@@ -15,6 +15,7 @@
 #pragma warning(disable : 26812)  // allow unscoped enums becasue SFML uses them
 
 // @remember: test with range of resolutions
+// @current: review and refactor code
 
 
 // @optimize: should decrease MAX_ENTITIES_PER_TILE when game is finished or when related design decisions are final
